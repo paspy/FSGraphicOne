@@ -1,5 +1,6 @@
 #include <iostream>
 #include <ctime>
+#include <vector>
 #include "RasterSurface.h"
 #include "XTime.h"
 #include "tiles_12.h"	// input tile file
@@ -27,8 +28,12 @@ struct Point {
 	unsigned int x, y;
 };
 
+struct Frame {
+	unsigned int BackBuffer[NUM_PIXELS];
+};
 
-unsigned int BackBuffer[NUM_PIXELS];
+Frame frames[64];
+
 
 // function prototype
 void ClearBuffer(unsigned int* _srcBuffer);
@@ -41,12 +46,17 @@ void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr
 						const unsigned int _copyToX, const unsigned int _copyToY);
 
 void PlayAnimation(Rect* _animeArr, unsigned int _curFrame);
+void BlendingLayers(unsigned int * _BackBuffer, const unsigned int * _layer0, const unsigned int * _layer1, const unsigned int * _layer2);
 
 int main() {
 	srand(unsigned int(time(nullptr)));
 
 	RS_Initialize(RASTER_WIDTH, RASTER_HEIGHT);
-	ClearBuffer(BackBuffer);
+
+
+	for (int i = 0; i < 64; i++) {
+		ClearBuffer(frames[i].BackBuffer);
+	}
 
 	Rect backgroundTile(288, 128, 288 + 31, 128 + 31);
 	Rect tree(320, 0, 320 + 64, 0 + 96);
@@ -68,37 +78,48 @@ int main() {
 		rndPoints[i] = point;
 	}
 
-	int currentFrame = 0;
-	do {
-		xTime.Signal();
-
-		// Background
+	// Background
+	for (int idx = 0; idx < 64; idx++) {
 		for (int i = 0; i < RASTER_WIDTH; i += 31) {
 			for (int j = 0; j < RASTER_HEIGHT; j += 31) {
-				BlockImageTransfer(tiles_12_pixels, BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, backgroundTile, i, j);
+				BlockImageTransfer(tiles_12_pixels, frames[idx].BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, backgroundTile, i, j);
 			}
 		}
-
-		// ramdon trees
+	}
+	
+	// ramdon trees
+	for (int idx = 0; idx < 64; idx++) {
 		for (int i = 0; i < 10; i++) {
 			int rLocX = rand() % RASTER_HEIGHT;
 			int rLocY = rand() % RASTER_WIDTH;
-			BlockImageTransfer(tiles_12_pixels, BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, tree, rndPoints[i].x, rndPoints[i].y);
+			BlockImageTransfer(tiles_12_pixels, frames[idx].BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, tree, rndPoints[i].x, rndPoints[i].y);
 		}
+	}
 
-		PlayAnimation(cellAnimArr, currentFrame);
+	for (int idx = 0; idx < 64; idx++) {
+		PlayAnimation(cellAnimArr, idx);
+	}
+	
+
+	int currentFrame = 0;
+	do {
+
+		xTime.Signal();
+
 		currentFrame++;
 		if (currentFrame >= 64) currentFrame = 0;
 
-	} while ( RS_Update(BackBuffer, NUM_PIXELS) );
+
+	} while ( RS_Update(frames[currentFrame].BackBuffer, NUM_PIXELS) );
 
 	RS_Shutdown();
 
 	return 0;
 }
 
+
 void PlayAnimation(Rect* _animeArr, unsigned int _curFrame) {
-	BlockImageTransfer(fire_02_pixels, BackBuffer, fire_02_height, fire_02_width, RASTER_HEIGHT, RASTER_WIDTH, _animeArr[_curFrame], RASTER_HEIGHT >> 1, RASTER_WIDTH >> 1);
+	BlockImageTransfer(fire_02_pixels, frames[_curFrame].BackBuffer, fire_02_height, fire_02_width, RASTER_HEIGHT, RASTER_WIDTH, _animeArr[_curFrame], RASTER_HEIGHT >> 1, RASTER_WIDTH >> 1);
 }
 
 void ClearBuffer(unsigned int* _srcBuffer) {
@@ -141,7 +162,6 @@ void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr
 			unsigned int outColor = newX | newR | newG | newB;
 
 			unsigned int outColor_break = ix | ir | ig | ib;
-
 
 			_desImgArr[Convert2Dto1D(i + _copyToX - _rect.left, j + _copyToY - _rect.top, _desImgWidth)] = outColor;
 
