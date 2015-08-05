@@ -78,7 +78,7 @@ int main() {
 		rndPoints[i] = point;
 	}
 
-	// Background
+	// put Background
 	for (int idx = 0; idx < 64; idx++) {
 		for (int i = 0; i < RASTER_WIDTH; i += 31) {
 			for (int j = 0; j < RASTER_HEIGHT; j += 31) {
@@ -87,7 +87,7 @@ int main() {
 		}
 	}
 	
-	// ramdon trees
+	// blend ramdon trees
 	for (int idx = 0; idx < 64; idx++) {
 		for (int i = 0; i < 10; i++) {
 			int rLocX = rand() % RASTER_HEIGHT;
@@ -96,15 +96,23 @@ int main() {
 		}
 	}
 
+	// bake animation to each frame
 	for (int idx = 0; idx < 64; idx++) {
 		PlayAnimation(cellAnimArr, idx);
 	}
 	
-
+	float frameTime = 0;
 	int currentFrame = 0;
 	do {
 
-		xTime.Signal();
+		do {
+			Sleep(1);
+			xTime.Signal();
+			double deltaTime = xTime.Delta();
+			frameTime += max(deltaTime, 0.0);
+			std::cout << frameTime << std::endl;
+		} while (frameTime < 1.0 / 60.0);
+		frameTime -= 1.0 / 60.0;
 
 		currentFrame++;
 		if (currentFrame >= 64) currentFrame = 0;
