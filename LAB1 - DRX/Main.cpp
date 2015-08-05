@@ -21,6 +21,13 @@ struct Rect {
 	unsigned int bottom;
 };
 
+struct Point {
+	Point() {}
+	Point(unsigned int _x, unsigned int _y) : x(_x), y(_y) {}
+	unsigned int x, y;
+};
+
+
 unsigned int BackBuffer[NUM_PIXELS];
 
 // function prototype
@@ -54,10 +61,12 @@ int main() {
 
 	XTime xTime;
 	
-	
-	int rLocX = rand() % RASTER_HEIGHT;
-	int rLocY = rand() % RASTER_WIDTH;
-	
+	Point rndPoints[10];
+
+	for (int i = 0; i < 10; i++) {
+		Point point(rand() % RASTER_HEIGHT, rand() % RASTER_WIDTH);
+		rndPoints[i] = point;
+	}
 
 	int currentFrame = 0;
 	do {
@@ -74,12 +83,13 @@ int main() {
 		for (int i = 0; i < 10; i++) {
 			int rLocX = rand() % RASTER_HEIGHT;
 			int rLocY = rand() % RASTER_WIDTH;
-			BlockImageTransfer(tiles_12_pixels, BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, tree, rLocX, rLocY);
+			BlockImageTransfer(tiles_12_pixels, BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, tree, rndPoints[i].x, rndPoints[i].y);
 		}
 
 		PlayAnimation(cellAnimArr, currentFrame);
 		currentFrame++;
-		if (currentFrame > 64) currentFrame = 0;
+		if (currentFrame >= 64) currentFrame = 0;
+
 	} while ( RS_Update(BackBuffer, NUM_PIXELS) );
 
 	RS_Shutdown();
