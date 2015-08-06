@@ -14,8 +14,7 @@
 
 #define RASTER_WIDTH 500
 #define RASTER_HEIGHT 500
-#define RASTER_DEPTH 5
-#define NUM_PIXELS (RASTER_WIDTH*RASTER_HEIGHT*RASTER_DEPTH)
+#define NUM_PIXELS (RASTER_WIDTH*RASTER_HEIGHT)
 
 struct Point {
 	Point() {}
@@ -27,9 +26,13 @@ unsigned int BackBuffer[NUM_PIXELS];
 
 // function prototype
 void ClearBuffer(unsigned int* _srcBuffer);
-int Convert3Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _z, const unsigned int _width);
+int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width);
 int RandInRange(int _min, int _max);
-unsigned int LerpARGB(unsigned int _A, unsigned int _B, float _ratio);
+unsigned int Lerp(unsigned int _A, unsigned int _B, float _ratio);
+void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color);
+void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
+void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
+void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
 
 int main() {
 	srand(unsigned int(time(nullptr)));
@@ -37,6 +40,16 @@ int main() {
 	RS_Initialize(RASTER_WIDTH, RASTER_HEIGHT);
 
 	ClearBuffer(BackBuffer);
+
+	// random 2500 Points
+
+	for ( int i = 0; i < 2500; i++ ) {
+		DrawPoint(RandInRange(0, RASTER_WIDTH - 1), RandInRange(0, RASTER_HEIGHT - 1), BackBuffer, 0xFFFFFFFF);
+	}
+
+	DrawBresehamLine(0, 100, 499, 400, BackBuffer, 0xFFFF0000);
+	DrawMidpointLine(0, 110, 499, 410, BackBuffer, 0xFF00FF00);
+	DrawParametricLine(0, 120, 499, 420, BackBuffer, 0xFF0000FF);
 
 	while (RS_Update(BackBuffer, NUM_PIXELS)) {
 
@@ -53,8 +66,12 @@ void ClearBuffer(unsigned int* _srcBuffer) {
 	}
 }
 
-int Convert3Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _z, const unsigned int _width) {
-	assert(_x < RASTER_HEIGHT&&_y < RASTER_HEIGHT&&_z < RASTER_DEPTH);
+void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color) {
+	_buffer[Convert2Dto1D(_x, _y, RASTER_WIDTH)] = _color;
+}
+
+int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width) {
+	assert(_x <= RASTER_HEIGHT&&_y <= RASTER_HEIGHT);
 	return _y*_width + _x;
 }
 
@@ -62,56 +79,51 @@ int RandInRange(int _min, int _max) {
 	return _min + (rand() % (int)(_max - _min + 1));
 }
 
-unsigned int LerpARGB(unsigned int _A, unsigned int _B, float _ratio) {
-	return (unsigned int)((((int)_B - (int)_A) * _ratio) + _A);
-	//return ((_B - _A) * _ratio) + _A;
+int Lerp(int _A, int _B, float _ratio) {
+	return (int)((((float)_B - (float)_A) * _ratio) + (float)_A);
 }
 
-/*
-function line(x0, x1, y0, y1)
-boolean steep := abs(y1 - y0) > abs(x1 - x0)
-if steep then
-swap(x0, y0)
-swap(x1, y1)
-if x0 > x1 then
-swap(x0, x1)
-swap(y0, y1)
-
-int deltax := x1 - x0
-int deltay := abs(y1 - y0)
-int error := deltax / 2
-int ystep
-int y := y0
-if y0 < y1 then ystep := 1 else ystep := -1
-for x from x0 to x1
-if steep then plot(y,x) else plot(x,y)
-error := error - deltay
-if error < 0 then
-y := y + ystep
-error := error + deltax
-*/
-void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1) {
-	bool steep = abs(_y1 - _y0) > abs(_x1 - _x0);
-	if ( steep ) {
-		std::swap(_x0, _y0);
-		std::swap(_x1, _y1);
-	}
-	if ( _x0 > _x1 ) {
-		std::swap(_x0, _x1);
-		std::swap(_y0, _y1);
-	}
+void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
 	int deltaX = _x1 - _x0;
-	int deltaY = abs(_y1 - _y0);
-	int error = deltaX / 2;
-	int yStep;
+	int deltaY = _y1 - _y0;
+	float error = 0;
+	float slope = (float)deltaY / (float)deltaX;
 	int y = _y0;
-	if ( _y0 < _y1 ) {
-		yStep = 1;
-	} else {
-		yStep = -1;
-	}
-	int x = 0;
-	for ( x = _x0; x < _x1; x++ ) {
-
+	for ( int x = _x0; x < _x1; x++ ) {
+		DrawPoint(x, y, _buffer, _color);
+		error = error + slope;
+		if ( abs(error) >= 0.5f ) {
+			y++;
+			error -= 1.0f;
+		}
 	}
 }
+
+void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
+	int x = _x0;
+	int y = _y0;
+	int a = _y0 - _y1;
+	int b = _x1 - _x0;
+	int d = 2 * a + b;
+	int d1 = 2 * a;
+	int d2 = 2 * (a + b);
+	DrawPoint(x, y, _buffer, _color);
+	while ( x < _x1 ) {
+		if ( d < 0 ) {
+			x++, y++, d += d2;
+		} else {
+			x++, d += d1;
+		}
+		DrawPoint(x, y, _buffer, _color);
+	}
+}
+
+void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
+	int deltaX = _x1 - _x0;
+	for ( int currX = _x0; currX < _x1; currX++ ) {
+		float ratio = ((float)currX - (float)_x0) / (float)deltaX;
+		int currY = Lerp(_y0, _y1, ratio);
+		DrawPoint(currX, (int)floor(currY + 0.5f), _buffer, _color);
+	}
+}
+
