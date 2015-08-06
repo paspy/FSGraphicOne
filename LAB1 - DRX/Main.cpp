@@ -4,7 +4,6 @@
 #include "RasterSurface.h"
 #include "XTime.h"
 #include "tiles_12.h"	// input tile file
-#include "fire_02.h"	// input particle file
 #include "fire_01.h"	// input particle file
 
 
