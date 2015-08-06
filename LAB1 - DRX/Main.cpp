@@ -34,7 +34,7 @@ unsigned int BackBuffer[NUM_PIXELS];
 void ClearBuffer(unsigned int* _srcBuffer);
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width);
 int RandInRange(int _min, int _max);
-int Lerp(unsigned int _A, unsigned int _B, float _ratio);
+int Lerp_(unsigned int _A, unsigned int _B, float _ratio);
 unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio);
 void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color);
 void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
@@ -96,17 +96,28 @@ int main() {
 		}
 
 		if ( GetAsyncKeyState(VKNUM_3) && !keyPressed ) {
-			std::cout << "3";
+			ClearBuffer(BackBuffer);
+			int _x0 = RandInRange(1, RASTER_WIDTH - 1);
+			int _x1 = RandInRange(1, RASTER_WIDTH - 1);
+			int _y0 = RandInRange(1, RASTER_WIDTH - 1);
+			int _y1 = RandInRange(1, RASTER_WIDTH - 1);
+
+			std::cout << "Random DrawParametricLine \n";
+			std::cout << "(" << _x0 << ", " << _x1 << ") to " << "(" << _y0 << ", " << _y1 << ")\n";
+
+			DrawParametricLine(_x0, _x1, _y0, _y1, BackBuffer, 0xFFFF00FF, 0xFF00FFFF);
+
+			DrawBresehamLine(0, 100, 499, 400, BackBuffer, 0xFFFF0000);
+			DrawMidpointLine(0, 110, 499, 410, BackBuffer, 0xFF00FF00);
+			DrawParametricLine(0, 120, 499, 420, BackBuffer, 0xFFFF00FF, 0xFF00FFFF);
 			keyPressed = true;
 		}
 
 		if ( GetAsyncKeyState(VKNUM_4) && !keyPressed ) {
-			std::cout << "4";
 			ClearBuffer(BackBuffer);
 			for ( int i = 0; i < 2500; i++ ) {
 				DrawPoint(RandInRange(0, RASTER_WIDTH - 1), RandInRange(0, RASTER_HEIGHT - 1), BackBuffer, 0xFFFFFFFF);
 			}
-
 
 			DrawBresehamLine(0, 100, 499, 400, BackBuffer, 0xFFFF0000);
 			DrawMidpointLine(0, 110, 499, 410, BackBuffer, 0xFF00FF00);
@@ -143,7 +154,7 @@ int RandInRange(int _min, int _max) {
 	return _min + (rand() % (int)(_max - _min + 1));
 }
 
-int Lerp(int _A, int _B, float _ratio) {
+int Lerp_(unsigned int _A, unsigned int _B, float _ratio) {
 	return (int)((((float)_B - (float)_A) * _ratio) + (float)_A);
 }
 
@@ -158,8 +169,12 @@ unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio) {
 	unsigned int endG = (_B & 0x0000FF00) >> 8;
 	unsigned int endB = (_B & 0x000000FF);
 
+	unsigned int newA = (unsigned int)Lerp_(startA, endA, _ratio) << 24;
+	unsigned int newR = ((unsigned int)Lerp_(startR, endR, _ratio)) << 16;
+	unsigned int newG = ((unsigned int)Lerp_(startG, endG, _ratio)) << 8;
+	unsigned int newB = (unsigned int)Lerp_(startB, endB, _ratio);
 
-
+	return newA | newR | newG| newB;
 }
 
 void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
@@ -277,11 +292,25 @@ void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer,
 
 
 void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor) {
-	int deltaX = _x1 - _x0;
-	for ( int currX = _x0; currX < _x1; currX++ ) {
-		float ratio = ((float)currX - (float)_x0) / (float)deltaX;
-		int currY = Lerp(_y0, _y1, ratio);
-		DrawPoint(currX, (int)floor(currY + 0.5f), _buffer, (unsigned int)Lerp((int)_StartColor, (int)_EndColor, ratio));
+	int deltaX = abs(_x1 - _x0);
+	int deltaY = abs(_y1 - _y0);
+	int curMax = max(deltaX, deltaY);
+
+	for ( int i = 0; i < curMax; i++ ) {
+		float ratio = i / (float)curMax;
+		int currX = Lerp_(_x0, _x1, ratio);
+		int currY = Lerp_(_y0, _y1, ratio);
+		if ( i == 0 || i == curMax - 1 ) {
+			DrawPoint(currX, currY, _buffer, 0xFFFF00);
+		} else {
+			DrawPoint(currX, currY, _buffer, (unsigned int)ColorLerp(_StartColor, _EndColor, ratio));
+		}
 	}
+
+	//for ( int currX = _x0; currX < _x1; currX++ ) {
+	//	float ratio = ((float)currX - (float)_x0) / (float)deltaX;
+	//	int currY = Lerp_(_y0, _y1, ratio);
+	//	DrawPoint(currX, (int)floor(currY + 0.5f), _buffer, (unsigned int)ColorLerp(_StartColor, _EndColor, ratio));
+	//}
 }
 
