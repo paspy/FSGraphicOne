@@ -106,38 +106,15 @@ int main() {
 	int currentFrame = 0;
 
 	while (RS_Update(frames[currentFrame].BackBuffer, NUM_PIXELS)) {
-		std::cout << currentFrame << std::endl;
-		do {
-			Sleep(1);
-			xTime.Signal();
-			double deltaTime = xTime.Delta();
-			frameTime += max(deltaTime, 0.0);
-			//std::cout << frameTime << std::endl;
-		} while (frameTime < 1.0 / 60.0);
-		frameTime -= 1.0 / 60.0;
-		//currentFrame++;
-		if (++currentFrame >= 64) currentFrame = 0;
+		//std::cout << currentFrame << std::endl;
+		xTime.Signal();
+		double deltaTime = xTime.Delta();
+		frameTime += max(deltaTime, 0.0);
+		if (frameTime > 1.0 / 30.0) {
+			frameTime = 0;
+			if (++currentFrame >= 64) currentFrame = 0;
+		}
 	}
-
-	//do {
-
-		//do {
-		//	Sleep(25);
-		//	xTime.Signal();
-		//	double deltaTime = xTime.Delta();
-		//	frameTime += max(deltaTime, 0.0);
-		//	//std::cout << frameTime << std::endl;
-		//} while (frameTime < 1.0 / 60.0);
-		//frameTime -= 1.0 / 60.0;
-
-	//	Sleep(50);
-
-	//	currentFrame++;
-	//	std::cout << currentFrame << std::endl;
-	//	if (currentFrame >= 64) currentFrame = -1;
-
-
-	//} while (  );
 
 	RS_Shutdown();
 
