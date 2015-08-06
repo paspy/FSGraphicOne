@@ -2,15 +2,9 @@
 #include <utility>
 #include <ctime>
 #include <cstdio>
-#include "RasterSurface.h"
-#include "XTime.h"
-#include "tiles_12.h"	// input tile file
-#include "fire_01.h"	// input particle file
-
 #include <cassert>
-
-
-// grass coord = 288*128 to 319*159
+#include <Windows.h>
+#include "RasterSurface.h"
 
 #define RASTER_WIDTH 500
 #define RASTER_HEIGHT 500
@@ -20,13 +14,6 @@
 #define VKNUM_2 0x32
 #define VKNUM_3 0x33
 #define VKNUM_4 0x34
-
-
-struct Point {
-	Point() {}
-	Point(unsigned int _x, unsigned int _y) : x(_x), y(_y) {}
-	unsigned int x, y;
-};
 
 unsigned int BackBuffer[NUM_PIXELS];
 
@@ -118,7 +105,6 @@ int main() {
 			for ( int i = 0; i < 2500; i++ ) {
 				DrawPoint(RandInRange(0, RASTER_WIDTH - 1), RandInRange(0, RASTER_HEIGHT - 1), BackBuffer, 0xFFFFFFFF);
 			}
-
 			DrawBresehamLine(0, 100, 499, 400, BackBuffer, 0xFFFF0000);
 			DrawMidpointLine(0, 110, 499, 410, BackBuffer, 0xFF00FF00);
 			DrawParametricLine(0, 120, 499, 420, BackBuffer, 0xFFFF00FF, 0xFF00FFFF);
@@ -146,7 +132,7 @@ void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buff
 }
 
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width) {
-	//assert(_x <= RASTER_HEIGHT&&_y <= RASTER_HEIGHT);
+	assert(_x <= RASTER_HEIGHT&&_y <= RASTER_HEIGHT);
 	return _y*_width + _x;
 }
 
@@ -178,8 +164,7 @@ unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio) {
 }
 
 void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
-	bool steep = abs(_y1 - _y0) > abs(_x1 - _x0);
-	if ( steep ) {
+	if ( abs(_y1 - _y0) > abs(_x1 - _x0) ) {
 		std::swap(_x0, _y0);
 		std::swap(_x1, _y1);
 	}
@@ -193,9 +178,8 @@ void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer,
 	int y = _y0;
 	if ( _y0 < _y1 ) yStep = 1;
 	else  yStep = -1;
-
 	for ( int x = _x0; x < _x1; x++ ) {
-		if ( steep ) {
+		if ( abs(_y1 - _y0) > abs(_x1 - _x0) ) {
 			if ( x == _x0 || x == _x1 - 1 ) DrawPoint(y, x, _buffer, 0xFFFF00);
 			else DrawPoint(y, x, _buffer, _color);
 		} else {
@@ -294,23 +278,17 @@ void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer,
 void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor) {
 	int deltaX = abs(_x1 - _x0);
 	int deltaY = abs(_y1 - _y0);
-	int curMax = max(deltaX, deltaY);
+	int m = max(deltaX, deltaY);
 
-	for ( int i = 0; i < curMax; i++ ) {
-		float ratio = i / (float)curMax;
-		int currX = Lerp_(_x0, _x1, ratio);
-		int currY = Lerp_(_y0, _y1, ratio);
-		if ( i == 0 || i == curMax - 1 ) {
-			DrawPoint(currX, currY, _buffer, 0xFFFF00);
+	for ( int i = 0; i < m; i++ ) {
+		float ratio = i / (float)m;
+		int x = Lerp_(_x0, _x1, ratio);
+		int y = Lerp_(_y0, _y1, ratio);
+		if ( i == 0 || i == m - 1 ) {
+			DrawPoint(x, y, _buffer, 0xFFFF00);
 		} else {
-			DrawPoint(currX, currY, _buffer, (unsigned int)ColorLerp(_StartColor, _EndColor, ratio));
+			DrawPoint(x, y, _buffer, (unsigned int)ColorLerp(_StartColor, _EndColor, ratio));
 		}
 	}
-
-	//for ( int currX = _x0; currX < _x1; currX++ ) {
-	//	float ratio = ((float)currX - (float)_x0) / (float)deltaX;
-	//	int currY = Lerp_(_y0, _y1, ratio);
-	//	DrawPoint(currX, (int)floor(currY + 0.5f), _buffer, (unsigned int)ColorLerp(_StartColor, _EndColor, ratio));
-	//}
 }
 
