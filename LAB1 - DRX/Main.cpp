@@ -5,6 +5,7 @@
 #include "XTime.h"
 #include "tiles_12.h"	// input tile file
 #include "fire_02.h"	// input particle file
+#include "fire_01.h"	// input particle file
 
 
 // grass coord = 288*128 to 319*159
@@ -38,6 +39,7 @@ Frame frames[64];
 // function prototype
 void ClearBuffer(unsigned int* _srcBuffer);
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width);
+int RandInRange(int _min, int _max);
 unsigned int LerpARGB(unsigned int _A, unsigned int _B, float _ratio);
 void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr,
 						const unsigned int _srcImgheight, const unsigned int _srcImgWidth,
@@ -47,6 +49,7 @@ void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr
 
 void PlayAnimation(Rect* _animeArr, unsigned int _curFrame);
 void BlendingLayers(unsigned int * _BackBuffer, const unsigned int * _layer0, const unsigned int * _layer1, const unsigned int * _layer2);
+
 
 int main() {
 	srand(unsigned int(time(nullptr)));
@@ -74,14 +77,14 @@ int main() {
 	Point rndPoints[10];
 
 	for (int i = 0; i < 10; i++) {
-		Point point(rand() % RASTER_HEIGHT, rand() % RASTER_WIDTH);
-		rndPoints[i] = point;
+		rndPoints[i].x = RandInRange(0, RASTER_WIDTH - 64);
+		rndPoints[i].y = RandInRange(0, RASTER_HEIGHT - 96);
 	}
 
-	// put Background
+	//draw Background
 	for (int idx = 0; idx < 64; idx++) {
-		for (int i = 0; i < RASTER_WIDTH; i += 31) {
-			for (int j = 0; j < RASTER_HEIGHT; j += 31) {
+		for (int i = 0; i <= RASTER_WIDTH; i += 32) {
+			for (int j = 0; j <= RASTER_HEIGHT; j += 32) {
 				BlockImageTransfer(tiles_12_pixels, frames[idx].BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, backgroundTile, i, j);
 			}
 		}
@@ -90,8 +93,6 @@ int main() {
 	// blend ramdon trees
 	for (int idx = 0; idx < 64; idx++) {
 		for (int i = 0; i < 10; i++) {
-			int rLocX = rand() % RASTER_HEIGHT;
-			int rLocY = rand() % RASTER_WIDTH;
 			BlockImageTransfer(tiles_12_pixels, frames[idx].BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, tree, rndPoints[i].x, rndPoints[i].y);
 		}
 	}
@@ -101,24 +102,42 @@ int main() {
 		PlayAnimation(cellAnimArr, idx);
 	}
 	
-	float frameTime = 0;
+	double frameTime = 0;
 	int currentFrame = 0;
-	do {
 
+	while (RS_Update(frames[currentFrame].BackBuffer, NUM_PIXELS)) {
+		std::cout << currentFrame << std::endl;
 		do {
 			Sleep(1);
 			xTime.Signal();
 			double deltaTime = xTime.Delta();
 			frameTime += max(deltaTime, 0.0);
-			std::cout << frameTime << std::endl;
+			//std::cout << frameTime << std::endl;
 		} while (frameTime < 1.0 / 60.0);
 		frameTime -= 1.0 / 60.0;
+		//currentFrame++;
+		if (++currentFrame >= 64) currentFrame = 0;
+	}
 
-		currentFrame++;
-		if (currentFrame >= 64) currentFrame = 0;
+	//do {
+
+		//do {
+		//	Sleep(25);
+		//	xTime.Signal();
+		//	double deltaTime = xTime.Delta();
+		//	frameTime += max(deltaTime, 0.0);
+		//	//std::cout << frameTime << std::endl;
+		//} while (frameTime < 1.0 / 60.0);
+		//frameTime -= 1.0 / 60.0;
+
+	//	Sleep(50);
+
+	//	currentFrame++;
+	//	std::cout << currentFrame << std::endl;
+	//	if (currentFrame >= 64) currentFrame = -1;
 
 
-	} while ( RS_Update(frames[currentFrame].BackBuffer, NUM_PIXELS) );
+	//} while (  );
 
 	RS_Shutdown();
 
@@ -127,7 +146,7 @@ int main() {
 
 
 void PlayAnimation(Rect* _animeArr, unsigned int _curFrame) {
-	BlockImageTransfer(fire_02_pixels, frames[_curFrame].BackBuffer, fire_02_height, fire_02_width, RASTER_HEIGHT, RASTER_WIDTH, _animeArr[_curFrame], RASTER_HEIGHT >> 1, RASTER_WIDTH >> 1);
+	BlockImageTransfer(fire_01_pixels, frames[_curFrame].BackBuffer, fire_01_height, fire_01_width, RASTER_HEIGHT, RASTER_WIDTH, _animeArr[_curFrame], RASTER_HEIGHT >> 1, RASTER_WIDTH >> 1);
 }
 
 void ClearBuffer(unsigned int* _srcBuffer) {
@@ -146,8 +165,10 @@ void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr
 						const Rect _rect,
 						const unsigned int _copyToX, const unsigned int _copyToY) {
 
-	for ( unsigned int i = _rect.left; i < _rect.right; i++ ) {
-		for ( unsigned int j = _rect.top; j < _rect.bottom; j++ ) {
+	for ( unsigned int i = _rect.left; i <= _rect.right; i++ ) {
+
+		for ( unsigned int j = _rect.top; j <= _rect.bottom; j++ ) {
+
 			unsigned int inColor = _srcImgArr[Convert2Dto1D(i, j, _srcImgWidth)];	// BGRA to ARGB
 			unsigned int ix = inColor & 0x000000FF; ix <<= 24;
 			unsigned int ir = inColor & 0x0000FF00; ir <<= 8;
@@ -181,4 +202,8 @@ void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr
 unsigned int LerpARGB(unsigned int _A, unsigned int _B, float _ratio) {
 	return (unsigned int)((((int)_B - (int)_A) * _ratio) + _A);
 	//return ((_B - _A) * _ratio) + _A;
+}
+
+int RandInRange(int _min, int _max) {
+	return _min + (rand() % (int)(_max - _min + 1));
 }

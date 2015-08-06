@@ -151,6 +151,7 @@
     <ClCompile Include="XTime.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="fire_01.h" />
     <ClInclude Include="fire_02.h" />
     <ClInclude Include="RasterSurface.h" />
     <ClInclude Include="tiles_12.h" />
