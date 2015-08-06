@@ -1,10 +1,13 @@
 #include <iostream>
+#include <utility>
 #include <ctime>
 #include <vector>
 #include "RasterSurface.h"
 #include "XTime.h"
 #include "tiles_12.h"	// input tile file
 #include "fire_01.h"	// input particle file
+
+#include <cassert>
 
 
 // grass coord = 288*128 to 319*159
@@ -82,8 +85,8 @@ int main() {
 
 	//draw Background
 	for (int idx = 0; idx < 64; idx++) {
-		for (int i = 0; i <= RASTER_WIDTH; i += 32) {
-			for (int j = 0; j <= RASTER_HEIGHT; j += 32) {
+		for (int i = 0; i < RASTER_WIDTH; i += 32) {
+			for (int j = 0; j < RASTER_HEIGHT; j += 32) {
 				BlockImageTransfer(tiles_12_pixels, frames[idx].BackBuffer, tiles_12_height, tiles_12_width, RASTER_HEIGHT, RASTER_WIDTH, backgroundTile, i, j);
 			}
 		}
@@ -132,6 +135,7 @@ void ClearBuffer(unsigned int* _srcBuffer) {
 }
 
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width) {
+	//assert(_x < RASTER_HEIGHT&&_y < RASTER_HEIGHT);
 	return _y*_width + _x;
 }
 
@@ -167,7 +171,6 @@ void BlockImageTransfer(const unsigned int* _srcImgArr, unsigned int* _desImgArr
 			unsigned int outColor = newX | newR | newG | newB;
 
 			unsigned int outColor_break = ix | ir | ig | ib;
-
 			_desImgArr[Convert2Dto1D(i + _copyToX - _rect.left, j + _copyToY - _rect.top, _desImgWidth)] = outColor;
 
 		}
@@ -182,4 +185,54 @@ unsigned int LerpARGB(unsigned int _A, unsigned int _B, float _ratio) {
 
 int RandInRange(int _min, int _max) {
 	return _min + (rand() % (int)(_max - _min + 1));
+}
+
+
+/*
+function line(x0, x1, y0, y1)
+boolean steep := abs(y1 - y0) > abs(x1 - x0)
+if steep then
+swap(x0, y0)
+swap(x1, y1)
+if x0 > x1 then
+swap(x0, x1)
+swap(y0, y1)
+
+int deltax := x1 - x0
+int deltay := abs(y1 - y0)
+int error := deltax / 2
+int ystep
+int y := y0
+if y0 < y1 then ystep := 1 else ystep := -1
+for x from x0 to x1
+if steep then plot(y,x) else plot(x,y)
+error := error - deltay
+if error < 0 then
+y := y + ystep
+error := error + deltax
+*/
+void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1) {
+	bool steep = abs(_y1 - _y0) > abs(_x1 - _x0);
+	if ( steep ) {
+		std::swap(_x0, _y0);
+		std::swap(_x1, _y1);
+	}
+	if ( _x0 > _x1 ) {
+		std::swap(_x0, _x1);
+		std::swap(_y0, _y1);
+	}
+	int deltaX = _x1 - _x0;
+	int deltaY = abs(_y1 - _y0);
+	int error = deltaX / 2;
+	int yStep;
+	int y = _y0;
+	if ( _y0 < _y1 ) {
+		yStep = 1;
+	} else {
+		yStep = -1;
+	}
+	int x = 0;
+	for ( x = _x0; x < _x1; x++ ) {
+
+	}
 }
