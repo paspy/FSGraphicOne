@@ -24,12 +24,18 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Chen_2DGraphicTools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RasterSurface.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="XTime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Chen_2DGraphicTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

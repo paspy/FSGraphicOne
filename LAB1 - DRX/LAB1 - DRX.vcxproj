@@ -146,11 +146,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Chen_2DGraphicTools.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="RasterSurface.cpp" />
     <ClCompile Include="XTime.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Chen_2DGraphicTools.h" />
     <ClInclude Include="RasterSurface.h" />
     <ClInclude Include="XTime.h" />
   </ItemGroup>
