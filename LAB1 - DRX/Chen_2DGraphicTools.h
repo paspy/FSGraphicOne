@@ -25,8 +25,14 @@
 
 // VERTEX structure
 typedef struct Vertex4 {
-	// x y z w
-	float xyzw[4];
+	union {
+		// x y z w
+		float xyzw[4];
+
+		struct {
+			float x, y, z, w;
+		};
+	};
 	unsigned int color;
 }*Vertex4_ptr;
 
@@ -35,16 +41,6 @@ typedef struct Pixel2D {
 }*Pixel2D_ptr;
 
 typedef unsigned int Pixel;
-
-typedef union Matrix3x3 {
-	float e[9];
-
-	struct {
-		float _e11, _e12, _e13;
-		float _e21, _e22, _e23;
-		float _e31, _e32, _e33;
-	};
-}*Matrix3x3_ptr;
 
 typedef union Matrix4x4 {
 	float e[16];
@@ -57,197 +53,10 @@ typedef union Matrix4x4 {
 	};
 }*Matrix4x4_ptr;
 
-// vector classes
-class Vector2D {
-public:
-	float x, y;
-	unsigned int color;
-	Vector2D() {}
-	Vector2D(float _r, float _s) {
-		x = _r;
-		y = _s;
-		color = 0xFFFFFFFF;
-	}
-	Vector2D& Set(float _r, float _s) {
-		x = _r;
-		y = _s;
-		return (*this);
-	}
-
-	float& operator [](long _idx) {
-		return ((&x)[_idx]);
-	}
-
-	const float& operator [](long _idx) const {
-		return ((&x)[_idx]);
-	}
-
-	Vector2D& operator +=(const Vector2D& _v) {
-		x += _v.x;
-		y += _v.y;
-		return (*this);
-	}
-
-	Vector2D& operator -=(const Vector2D& _v) {
-		x -= _v.x;
-		y -= _v.y;
-		return (*this);
-	}
-
-	Vector2D& operator *=(float _t) {
-		x *= _t;
-		y *= _t;
-		return (*this);
-	}
-
-	Vector2D& operator /=(float _t) {
-		float f = 1.0F / _t;
-		x *= f;
-		y *= f;
-		return (*this);
-	}
-
-	Vector2D& operator &=(const Vector2D& _v) {
-		x *= _v.x;
-		y *= _v.y;
-		return (*this);
-	}
-
-	Vector2D operator -() const {
-		return (Vector2D(-x, -y));
-	}
-
-	Vector2D operator +(const Vector2D& _v) const {
-		return (Vector2D(x + _v.x, y + _v.y));
-	}
-
-	Vector2D operator -(const Vector2D& _v) const {
-		return (Vector2D(x - _v.x, y - _v.y));
-	}
-
-	Vector2D operator *(float _t) const {
-		return (Vector2D(x * _t, y * _t));
-	}
-
-	Vector2D operator /(float _t) const {
-		float f = 1.0F / _t;
-		return (Vector2D(x * f, y * f));
-	}
-
-	float operator *(const Vector2D& _v) const {
-		return (x * _v.x + y * _v.y);
-	}
-
-	Vector2D operator &(const Vector2D& _v) const {
-		return (Vector2D(x * _v.x, y * _v.y));
-	}
-
-	bool operator ==(const Vector2D& _v) const {
-		return ((x == _v.x) && (y == _v.y));
-	}
-
-	bool operator !=(const Vector2D& _v) const {
-		return ((x != _v.x) || (y != _v.y));
-	}
-
-	Vector2D& Normalize() {
-		return (*this /= sqrtf(x * x + y * y));
-	}
-
-	Vector2D& Rotate(float angle) {
-		float s = sinf(angle);
-		float c = cosf(angle);
-		float nx = c * x - s * y;
-		float ny = s * x + c * y;
-		x = nx;
-		y = ny;
-		return (*this);
-	}
-
-	Vector2D& Tranlate(const Vector2D& _v) {
-		x += (_v.x - x);
-		y += (_v.y - y);
-		return (*this);
-	}
-	
-	Vector2D& Scale(const Vector2D& _v) {
-		x *= _v.x;
-		y *= _v.y;
-		return (*this);
-	}
-};
-
-
-class Point2D : public Vector2D {
-public:
-	Point2D() {}
-	Point2D(float _r, float _s) : Vector2D(_r, _s) {}
-	Point2D& operator =(const Vector2D& _v) {
-		x = _v.x;
-		y = _v.y;
-		return (*this);
-	}
-	Point2D& operator *=(float _t) {
-		x *= _t;
-		y *= _t;
-		return (*this);
-	}
-	Point2D& operator /=(float _t) {
-		float f = 1.0F / _t;
-		x *= f;
-		y *= f;
-		return (*this);
-	}
-	Point2D operator -() const {
-		return (Point2D(-x, -y));
-	}
-	Point2D operator +(const Vector2D& _v) const {
-		return (Point2D(x + _v.x, y + _v.y));
-	}
-	Point2D operator -(const Vector2D& _v) const {
-		return (Point2D(x - _v.x, y - _v.y));
-	}
-	Vector2D operator -(const Point2D& _p) const {
-		return (Vector2D(x - _p.x, y - _p.y));
-	}
-	Point2D operator *(float _t) const {
-		return (Point2D(x * _t, y * _t));
-	}
-	Point2D operator /(float _t) const {
-		float f = 1.0F / _t;
-		return (Point2D(x * f, y * f));
-	}
-};
-
-
-inline Vector2D operator *(float _t, const Vector2D& _v) {
-	return (Vector2D(_t * _v.x, _t * _v.y));
-}
-
-inline Point2D operator *(float _t, const Point2D& _p) {
-	return (Point2D(_t * _p.x, _t * _p.y));
-}
-
-inline float Dot(const Vector2D& v1, const Vector2D& v2) {
-	return (v1 * v2);
-}
-
-inline float Magnitude(const Vector2D& _v) {
-	return (sqrtf(_v.x * _v.x + _v.y * _v.y));
-}
-
-inline float InverseMag(const Vector2D& _v) {
-	return (1.0F / sqrtf(_v.x * _v.x + _v.y * _v.y));
-}
-
-inline float SquaredMag(const Vector2D& _v) {
-	return (_v.x * _v.x + _v.y * _v.y);
-}
 
 inline float DegreesToradians(float _degree) {
 	return (float)(_degree * PI / 180.0f);
 }
-
 
 // The active vertex shader. Modifies an incoming vertex. Pre-Rasterization. 
 void(*VertexShader)(Vertex4&) = 0;
@@ -262,14 +71,15 @@ Matrix4x4 SV_WorldMatrix;
 void ClearBuffer(unsigned int* _srcBuffer);
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width);
 int RandInRange(int _min, int _max);
-int Lerp_(unsigned int _A, unsigned int _B, float _ratio);
 unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio);
 void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color);
 void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
 void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
 void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor);
-void DrawLineUsingShader(const Vertex4 _start, const Vertex4 _end, unsigned int *_buffer);
+void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer);
 void MultiplyVertexByMatrix(Vertex4 &_vertex4, Matrix4x4 _worldMatrix);
+unsigned int LerpTri(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
+unsigned int ColorLerpTriangle(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
 Matrix4x4 MatrixRotation_Z(float _degree);
 Pixel2D CartesianToScreen(Vertex4 _v4);
 
@@ -303,9 +113,40 @@ int RandInRange(int _min, int _max) {
 	return _min + (rand() % (int)(_max - _min + 1));
 }
 
-int Lerp_(unsigned int _A, unsigned int _B, float _ratio) {
-	return (int)((((float)_B - (float)_A) * _ratio) + (float)_A);
+unsigned int Lerp_(unsigned int _A, unsigned int _B, float _ratio) {
+	return (unsigned int)((((float)_B - (float)_A) * _ratio) + (float)_A);
 }
+
+
+unsigned int ColorLerpTriangle(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC) {
+	unsigned int A1 = (_A & 0xFF000000) >> 24;
+	unsigned int R1 = (_A & 0x00FF0000) >> 16;
+	unsigned int G1 = (_A & 0x0000FF00) >> 8;
+	unsigned int B1 = (_A & 0x000000FF);
+
+	unsigned int A2 = (_B & 0xFF000000) >> 24;
+	unsigned int R2 = (_B & 0x00FF0000) >> 16;
+	unsigned int G2 = (_B & 0x0000FF00) >> 8;
+	unsigned int B2 = (_B & 0x000000FF);
+
+	unsigned int A3 = (_C & 0xFF000000) >> 24;
+	unsigned int R3 = (_C & 0x00FF0000) >> 16;
+	unsigned int G3 = (_C & 0x0000FF00) >> 8;
+	unsigned int B3 = (_C & 0x000000FF);
+
+	unsigned int newA = LerpTri(A1, A2, A3, _ratioA, _ratioB, _ratioC) << 24;
+	unsigned int newR = LerpTri(R1, R2, R3, _ratioA, _ratioB, _ratioC) << 16;
+	unsigned int newG = LerpTri(G1, G2, G3, _ratioA, _ratioB, _ratioC) << 8;
+	unsigned int newB = LerpTri(B1, B2, B3, _ratioA, _ratioB, _ratioC);
+
+	return newA | newR | newG | newB;
+
+}
+
+unsigned int LerpTri(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC) {
+	return (unsigned int)(((float)_A * _ratioA) + ((float)_B * _ratioB) + ((float)_C * _ratioC));
+}
+
 
 unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio) {
 	unsigned int startA = (_A & 0xFF000000) >> 24;
@@ -318,10 +159,10 @@ unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio) {
 	unsigned int endG = (_B & 0x0000FF00) >> 8;
 	unsigned int endB = (_B & 0x000000FF);
 
-	unsigned int newA = (unsigned int)Lerp_(startA, endA, _ratio) << 24;
-	unsigned int newR = ((unsigned int)Lerp_(startR, endR, _ratio)) << 16;
-	unsigned int newG = ((unsigned int)Lerp_(startG, endG, _ratio)) << 8;
-	unsigned int newB = (unsigned int)Lerp_(startB, endB, _ratio);
+	unsigned int newA = Lerp_(startA, endA, _ratio) << 24;
+	unsigned int newR = Lerp_(startR, endR, _ratio) << 16;
+	unsigned int newG = Lerp_(startG, endG, _ratio) << 8;
+	unsigned int newB = Lerp_(startB, endB, _ratio);
 
 	return newA | newR | newG | newB;
 }
@@ -459,32 +300,16 @@ void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffe
 	}
 }
 
-//void seedFill(Pixel2D _pixel, unsigned int _color) {
-//
-//	unsigned int currentColor;
-//	if ( (currentColor.red() == old_color[0]) &&
-//		(currentColor.green() == old_color[1]) &&
-//		(currentColor.blue() = old_color[2]) ) {
-//
-//		DrawPoint(_v4.xyzw[x])
-//
-//		for ( i = 0; i<8; i++ ) {
-//			seedFill(x + d8[i].x_off, y + d8[i].x_off, old_color, new_color);
-//		}
-//	}
-//
-//}
-
 void MultiplyVertexByMatrix(Vertex4 &_v4, Matrix4x4 _m4) {
 	float x, y, z, w;
-	x = _v4.xyzw[0] * _m4._e11 + _v4.xyzw[1] * _m4._e21 + _v4.xyzw[2] * _m4._e31 + _v4.xyzw[3] * _m4._e41;
-	y = _v4.xyzw[0] * _m4._e12 + _v4.xyzw[1] * _m4._e22 + _v4.xyzw[2] * _m4._e32 + _v4.xyzw[3] * _m4._e42;
-	z = _v4.xyzw[0] * _m4._e13 + _v4.xyzw[1] * _m4._e23 + _v4.xyzw[2] * _m4._e33 + _v4.xyzw[3] * _m4._e43;
-	w = _v4.xyzw[0] * _m4._e14 + _v4.xyzw[1] * _m4._e24 + _v4.xyzw[2] * _m4._e34 + _v4.xyzw[3] * _m4._e44;
-	_v4.xyzw[0] = x;
-	_v4.xyzw[1] = y;
-	_v4.xyzw[2] = z;
-	_v4.xyzw[3] = w;
+	x = _v4.x * _m4._e11 + _v4.y * _m4._e21 + _v4.z * _m4._e31 + _v4.w * _m4._e41;
+	y = _v4.x * _m4._e12 + _v4.y * _m4._e22 + _v4.z * _m4._e32 + _v4.w * _m4._e42;
+	z = _v4.x * _m4._e13 + _v4.y * _m4._e23 + _v4.z * _m4._e33 + _v4.w * _m4._e43;
+	w = _v4.x * _m4._e14 + _v4.y * _m4._e24 + _v4.z * _m4._e34 + _v4.w * _m4._e44;
+	_v4.x = x;
+	_v4.y = y;
+	_v4.z = z;
+	_v4.w = w;
 }
 
 Matrix4x4 MatrixRotation_Z(float _degree) {
@@ -496,7 +321,7 @@ Matrix4x4 MatrixRotation_Z(float _degree) {
 	return m;
 }
 
-void DrawLineUsingShader(const Vertex4 _start, const Vertex4 _end, unsigned int *_buffer) {
+void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer) {
 	// Copy input data and send through shaders
 	Vertex4 copy_start = _start;
 	Vertex4 copy_end = _end;
@@ -512,20 +337,89 @@ void DrawLineUsingShader(const Vertex4 _start, const Vertex4 _end, unsigned int 
 
 	DrawParametricLine(screen_start.x, screen_start.y, screen_end.x, screen_end.y, _buffer, _start.color, _end.color);
 
-	//for ( numPixels ) {
-	//	Pixel copyColor = currColor; // Just like a Vertex, copy original. 
-	//	if ( PixelShader ) PixelShader(copyColor); // Modify copy. 
-	//	PlotPixel(currX, currY, copyColor); // Display the copy.
-	//}
 
 }
 
 Pixel2D CartesianToScreen(Vertex4 _v4) {
 	Pixel2D screenPos;
 
-	screenPos.x = (int)((_v4.xyzw[0] + 1.0f) *0.5f * RASTER_WIDTH);
-	screenPos.y = (int)((1.0f - _v4.xyzw[1]) *0.5f * RASTER_HEIGHT);
+	screenPos.x = (int)((_v4.x + 1.0f) *0.5f * RASTER_WIDTH);
+	screenPos.y = (int)((1.0f - _v4.y) *0.5f * RASTER_HEIGHT);
 
 	return screenPos;
 }
 
+Vertex4 ScreenToCartesian(Pixel2D _p2) {
+	Vertex4 realPos;
+	realPos.x = ((float)_p2.x / RASTER_WIDTH *2.0f - 1.0f);
+	realPos.y = -((float)_p2.y / RASTER_HEIGHT *2.0f - 1.0f);
+
+	return realPos;
+}
+
+//(Y1 ¨C Y2)x + (X2 ¨C X1)y + X1Y2 ¨C Y1X2 = 0
+
+float ImplicitLineEquation(Vertex4 _px, Vertex4 _p1, Vertex4 _p2) {
+	float a, b, c, d;
+	a = _p1.y - _p2.y;
+	b = _p2.x - _p1.x;
+	c = _p1.x * _p2.y - _p1.y * _p2.x;
+	d = (a * _px.x + b * _px.y + c) / sqrtf(a*a + b*b);
+	return d;
+}
+
+Vertex4 FindBarycentricPoint(Vertex4 _P, const Vertex4 _triangle[3]) {
+	float beta, gamma, alpha, b, y, a;
+	beta = ImplicitLineEquation(_triangle[1], _triangle[0], _triangle[2]);
+	gamma = ImplicitLineEquation(_triangle[2], _triangle[1], _triangle[0]);
+	alpha = ImplicitLineEquation(_triangle[0], _triangle[2], _triangle[1]);
+	b = ImplicitLineEquation(_P, _triangle[0], _triangle[2]);
+	y = ImplicitLineEquation(_P, _triangle[1], _triangle[0]);
+	a = ImplicitLineEquation(_P, _triangle[2], _triangle[1]);
+	Vertex4 P;
+	P.x = b / beta;
+	P.y = y / gamma;
+	P.z = a / alpha;
+	return P;
+}
+
+void BetterBruteTriangle(const Vertex4 _triangle[3], unsigned int *_buffer, unsigned int _color) {
+
+	Vertex4 copy_vert[3] = { _triangle[0], _triangle[1], _triangle[2] };
+
+	if (VertexShader) {
+		VertexShader(copy_vert[0]);
+		VertexShader(copy_vert[1]);
+		VertexShader(copy_vert[2]);
+	}
+
+	Pixel2D a = CartesianToScreen(copy_vert[0]);
+	Pixel2D b = CartesianToScreen(copy_vert[1]);
+	Pixel2D c = CartesianToScreen(copy_vert[2]);
+
+	int startX = min(a.x, min(b.x, c.x));
+	int startY = min(a.y, min(b.y, c.y));
+	int endX   = max(a.x, max(b.x, c.x));
+	int endY   = max(a.y, max(b.y, c.y));
+
+	for (int curY = startY; curY < endY; curY++) {
+		for (int curX = startX; curX < endX; curX++) {
+			Pixel2D curScreenPos;
+			curScreenPos.x = curX;
+			curScreenPos.y = curY;
+
+			Vertex4 curPoint = ScreenToCartesian(curScreenPos);
+			Vertex4 bya = FindBarycentricPoint(curPoint, copy_vert);
+			if ((bya.x >= 0 && bya.x <= 1) &&
+				(bya.y >= 0 && bya.y <= 1) &&
+				(bya.z >= 0 && bya.z <= 1))
+			{
+				if (bya.x >= 0.99f) 					{
+					int b = 0; b++;
+				}
+				unsigned int blendColor = ColorLerpTriangle(_triangle[0].color, _triangle[1].color, _triangle[2].color, bya.x, bya.y, bya.z);
+				DrawPoint(curX, curY, _buffer, blendColor);
+			}
+		}
+	}
+}
