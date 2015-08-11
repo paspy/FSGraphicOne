@@ -38,7 +38,7 @@ int main() {
 		double deltaTime = xTime.Delta();
 		frameTime += max(deltaTime, 0.0);
 
-		if ( frameTime > 1.0 / 60.0 ) {
+		if ( frameTime > 1.0 / 30.0 ) {
 			ClearBuffer(BackBuffer);
 			// rotation here
 			degree += 1.0f;
