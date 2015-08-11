@@ -58,6 +58,19 @@ inline float DegreesToradians(float _degree) {
 	return (float)(_degree * PI / 180.0f);
 }
 
+inline Matrix4x4 SetIdentity() {
+	Matrix4x4 m = { 0 };
+	m._e11 = 1.0f;
+	m._e22 = 1.0f;
+	m._e33 = 1.0f;
+	m._e44 = 1.0f;
+	return m;
+}
+
+bool IsZero(float a) {
+	return (fabs(a))<EPSILON;
+}
+
 // The active vertex shader. Modifies an incoming vertex. Pre-Rasterization. 
 void(*VertexShader)(Vertex4&) = 0;
 // The active pixel shader. Modifies an outgoing pixel. Post-Rasterization.
@@ -65,7 +78,8 @@ void(*PixelShader)(Pixel&) = 0;
 
 // All Shader Variables (Always Pre-fixed by ¡°SV_¡±)
 Matrix4x4 SV_WorldMatrix;
-
+Matrix4x4 SV_ViewMatrix;
+Matrix4x4 SV_ProjMatrix;
 
 // function prototype
 void ClearBuffer(unsigned int* _srcBuffer);
@@ -78,14 +92,22 @@ void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer,
 void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor);
 void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer);
 void MultiplyVertexByMatrix(Vertex4 &_vertex4, Matrix4x4 _worldMatrix);
+Matrix4x4 MultiplyMatrixByMatrix(Matrix4x4 m, Matrix4x4 n);
 unsigned int LerpTri(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
 unsigned int ColorLerpTriangle(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
+Matrix4x4 MatrixRotation_X(float _degree);
+Matrix4x4 MatrixRotation_Y(float _degree);
 Matrix4x4 MatrixRotation_Z(float _degree);
 Pixel2D CartesianToScreen(Vertex4 _v4);
 
 // Applys the current world matrix to all
 void VS_World(Vertex4 &multiplyMe) {
 	MultiplyVertexByMatrix(multiplyMe, SV_WorldMatrix);
+	MultiplyVertexByMatrix(multiplyMe, SV_ViewMatrix);
+	MultiplyVertexByMatrix(multiplyMe, SV_ProjMatrix);
+	multiplyMe.x /= multiplyMe.w;
+	multiplyMe.y /= multiplyMe.w;
+	multiplyMe.z /= multiplyMe.w;
 }
 
 // Basic pixel shader returns the color white
@@ -316,6 +338,81 @@ void MultiplyVertexByMatrix(Vertex4 &_v4, Matrix4x4 _m4) {
 	_v4.w = w;
 }
 
+Matrix4x4 MultiplyMatrixByMatrix(Matrix4x4 m, Matrix4x4 n) {
+	Matrix4x4 r;
+
+	r._e11 = m._e11 * n._e11 + m._e12 * n._e21 + m._e13 * n._e31 + m._e14 * n._e41;
+	r._e12 = m._e11 * n._e12 + m._e12 * n._e22 + m._e13 * n._e32 + m._e14 * n._e42;
+	r._e13 = m._e11 * n._e13 + m._e12 * n._e23 + m._e13 * n._e33 + m._e14 * n._e43;
+	r._e14 = m._e11 * n._e14 + m._e12 * n._e24 + m._e13 * n._e34 + m._e14 * n._e44;
+
+	r._e21 = m._e21 * n._e11 + m._e22 * n._e21 + m._e23 * n._e31 + m._e24 * n._e41;
+	r._e22 = m._e21 * n._e12 + m._e22 * n._e22 + m._e23 * n._e32 + m._e24 * n._e42;
+	r._e23 = m._e21 * n._e13 + m._e22 * n._e23 + m._e23 * n._e33 + m._e24 * n._e43;
+	r._e24 = m._e21 * n._e14 + m._e22 * n._e24 + m._e23 * n._e34 + m._e24 * n._e44;
+
+	r._e31 = m._e31 * n._e11 + m._e32 * n._e21 + m._e33 * n._e31 + m._e34 * n._e41;
+	r._e32 = m._e31 * n._e12 + m._e32 * n._e22 + m._e33 * n._e32 + m._e34 * n._e42;
+	r._e33 = m._e31 * n._e13 + m._e32 * n._e23 + m._e33 * n._e33 + m._e34 * n._e43;
+	r._e34 = m._e31 * n._e14 + m._e32 * n._e24 + m._e33 * n._e34 + m._e34 * n._e44;
+
+	r._e41 = m._e41 * n._e11 + m._e42 * n._e21 + m._e43 * n._e31 + m._e44 * n._e41;
+	r._e42 = m._e41 * n._e12 + m._e42 * n._e22 + m._e43 * n._e32 + m._e44 * n._e42;
+	r._e43 = m._e41 * n._e13 + m._e42 * n._e23 + m._e43 * n._e33 + m._e44 * n._e43;
+	r._e44 = m._e41 * n._e14 + m._e42 * n._e24 + m._e43 * n._e34 + m._e44 * n._e44;
+
+	return r;
+}
+
+float Matrix_Determinant(float e_11, float e_12, float e_13,
+						 float e_21, float e_22, float e_23,
+						 float e_31, float e_32, float e_33) { 
+	return e_11 * e_22 * e_33 + e_12 * e_23 * e_31 + e_13 * e_21 * e_32 - e_11 * e_23 * e_32 - e_12 * e_21 * e_33 - e_13 * e_22 * e_31;
+}
+
+float Matrix_Determinant(Matrix4x4 m) {
+	return m._e11 * Matrix_Determinant(m._e22, m._e23, m._e24, m._e32, m._e33, m._e34, m._e42, m._e43, m._e44) -
+		   m._e12 * Matrix_Determinant(m._e21, m._e23, m._e24, m._e31, m._e33, m._e34, m._e41, m._e43, m._e44) +
+		   m._e13 * Matrix_Determinant(m._e21, m._e22, m._e24, m._e31, m._e32, m._e34, m._e41, m._e42, m._e44) -
+		   m._e14 * Matrix_Determinant(m._e21, m._e22, m._e23, m._e31, m._e32, m._e33, m._e41, m._e42, m._e43);
+}
+
+Matrix4x4 Matrix_Inverse(Matrix4x4 m) {
+	float det = Matrix_Determinant(m);
+	if ( IsZero(det) )
+		return m;
+
+	Matrix4x4 r;
+	float inv_det = 1.0f / det;
+
+	r._e11 = Matrix_Determinant(m._e22, m._e23, m._e24, m._e32, m._e33, m._e34, m._e42, m._e43, m._e44) * inv_det;
+	r._e12 = -Matrix_Determinant(m._e12, m._e13, m._e14, m._e32, m._e33, m._e34, m._e42, m._e43, m._e44) * inv_det;
+	r._e13 = Matrix_Determinant(m._e12, m._e13, m._e14, m._e22, m._e23, m._e24, m._e42, m._e43, m._e44) * inv_det;
+	r._e14 = -Matrix_Determinant(m._e12, m._e13, m._e14, m._e22, m._e23, m._e24, m._e32, m._e33, m._e34) * inv_det;
+	r._e21 = -Matrix_Determinant(m._e21, m._e23, m._e24, m._e31, m._e33, m._e34, m._e41, m._e43, m._e44) * inv_det;
+	r._e22 = Matrix_Determinant(m._e11, m._e13, m._e14, m._e31, m._e33, m._e34, m._e41, m._e43, m._e44) * inv_det;
+	r._e23 = -Matrix_Determinant(m._e11, m._e13, m._e14, m._e21, m._e23, m._e24, m._e41, m._e43, m._e44) * inv_det;
+	r._e24 = Matrix_Determinant(m._e11, m._e13, m._e14, m._e21, m._e23, m._e24, m._e31, m._e33, m._e34) * inv_det;
+	r._e31 = Matrix_Determinant(m._e21, m._e22, m._e24, m._e31, m._e32, m._e34, m._e41, m._e42, m._e44) * inv_det;
+	r._e32 = -Matrix_Determinant(m._e11, m._e12, m._e14, m._e31, m._e32, m._e34, m._e41, m._e42, m._e44) * inv_det;
+	r._e33 = Matrix_Determinant(m._e11, m._e12, m._e14, m._e21, m._e22, m._e24, m._e41, m._e42, m._e44) * inv_det;
+	r._e34 = -Matrix_Determinant(m._e11, m._e12, m._e14, m._e21, m._e22, m._e24, m._e31, m._e32, m._e34) * inv_det;
+	r._e41 = -Matrix_Determinant(m._e21, m._e22, m._e23, m._e31, m._e32, m._e33, m._e41, m._e42, m._e43) * inv_det;
+	r._e42 = Matrix_Determinant(m._e11, m._e12, m._e13, m._e31, m._e32, m._e33, m._e41, m._e42, m._e43) * inv_det;
+	r._e43 = -Matrix_Determinant(m._e11, m._e12, m._e13, m._e21, m._e22, m._e23, m._e41, m._e42, m._e43) * inv_det;
+	r._e44 = Matrix_Determinant(m._e11, m._e12, m._e13, m._e21, m._e22, m._e23, m._e31, m._e32, m._e33) * inv_det;
+
+	return r;
+}
+
+Matrix4x4 MatrixTranslation(float _x, float _y, float _z) {
+	Matrix4x4 m = { 1, 0, 0, 0,
+					0, 1, 0, 0,
+					0, 0, 1, 0,
+					_x, _y, _z, 1 };
+	return m;
+}
+
 Matrix4x4 MatrixRotation_X(float _degree) {
 	float rad = DegreesToradians(_degree);
 	Matrix4x4 m = { 1, 0,			0,			0,
@@ -343,7 +440,20 @@ Matrix4x4 MatrixRotation_Z(float _degree) {
 	return m;
 }
 
-
+Matrix4x4 CreateProjectMatrix(float _nearPlane, float _farPlane, float _fovDegree, float _aspectRatio) {
+	float fov_rad = DegreesToradians(_fovDegree);
+	float yScale = 1.0f / tanf(0.5f*fov_rad);
+	float xScale = yScale * _aspectRatio;
+	float zFar, zNear;
+	assert(_nearPlane!=0&& _farPlane > _nearPlane);
+	zNear = _nearPlane;
+	zFar = _farPlane;
+	Matrix4x4 m = { xScale, 0,		 0,								0,
+					0	  , yScale,	 0,								0,
+					0	  , 0,		 zFar / (zFar - zNear),			1,
+					0	  , 0,		 -(zFar*zNear) / (zFar-zNear),	0 };
+	return m;
+}
 
 void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer) {
 	// Copy input data and send through shaders

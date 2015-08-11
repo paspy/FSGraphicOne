@@ -79,15 +79,15 @@ int main() {
 
 	// Cube
 	const Vertex4 Cube[8] = {
-		{ -0.25f, 0.0f,  0.25f, 1.f, 0xFF00FF00 },	// A
-		{  0.25f, 0.0f,  0.25f, 1.f, 0xFF00FF00 },	// B
-		{  0.25f, 0.0f, -0.25f, 1.f, 0xFF00FF00 },	// C
-		{ -0.25f, 0.0f, -0.25f, 1.f, 0xFF00FF00 },	// D
+		{ -0.25f, -0.25f,  0.25f, 1.f, 0xFF00FF00 },	// A
+		{  0.25f, -0.25f,  0.25f, 1.f, 0xFF00FF00 },	// B
+		{  0.25f, -0.25f, -0.25f, 1.f, 0xFF00FF00 },	// C
+		{ -0.25f, -0.25f, -0.25f, 1.f, 0xFF00FF00 },	// D
 		
-		{ -0.25f, 0.5f,  0.25f, 1.f, 0xFF00FF00 },	// E
-		{ 0.25f,  0.5f,  0.25f, 1.f, 0xFF00FF00 },	// F
-		{ 0.25f,  0.5f, -0.25f, 1.f, 0xFF00FF00 },	// G
-		{ -0.25f, 0.5f, -0.25f, 1.f, 0xFF00FF00 },	// H
+		{ -0.25f,  0.25f,  0.25f, 1.f, 0xFF00FF00 },	// E
+		{ 0.25f,   0.25f,  0.25f, 1.f, 0xFF00FF00 },	// F
+		{ 0.25f,   0.25f, -0.25f, 1.f, 0xFF00FF00 },	// G
+		{ -0.25f,  0.25f, -0.25f, 1.f, 0xFF00FF00 },	// H
 	};
 
 	XTime xTime;
@@ -98,12 +98,25 @@ int main() {
 	float degree = 0;
 
 	double frameTime = 0;
+
+	// View Matrix
+	Matrix4x4 viewMat = SetIdentity();
+	viewMat = MultiplyMatrixByMatrix(MatrixTranslation(0, 0, -1.0f), MatrixRotation_X(-18.0f));
+	viewMat = Matrix_Inverse(viewMat);
+
+	// Projection Matrix
+	Matrix4x4 projMat = SetIdentity();
+	projMat = CreateProjectMatrix(0.1f, 10.0f, 90.0f, 1.0f);
+
 	while (RS_Update(BackBuffer, NUM_PIXELS)) {
 		xTime.Signal();
 		double deltaTime = xTime.Delta();
 		frameTime += max(deltaTime, 0.0);
+		
+		SV_ProjMatrix = projMat;
+		SV_ViewMatrix = viewMat;
 
-		if ( frameTime > 1.0 / 30.0 ) {
+		if ( frameTime > 1.0f / 60.0f ) {
 			ClearBuffer(BackBuffer);
 			// rotation here
 			degree += 1.0f;
@@ -121,8 +134,9 @@ int main() {
 			}
 
 
-			// draw cube 
-			SV_WorldMatrix = MatrixRotation_Y(degree);
+			// draw cube
+			
+			SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixTranslation(0, 0.25f, 0), MatrixRotation_Y(degree));
 
 			PixelShader = PS_Green;
 
@@ -140,11 +154,6 @@ int main() {
 			DrawLineUsingShader(Cube[1], Cube[5], BackBuffer);
 			DrawLineUsingShader(Cube[2], Cube[6], BackBuffer);
 			DrawLineUsingShader(Cube[3], Cube[7], BackBuffer);
-
-
-			//DrawLineUsingShader(Triangle[0], Triangle[1], BackBuffer);
-			//DrawLineUsingShader(Triangle[1], Triangle[2], BackBuffer);
-			//DrawLineUsingShader(Triangle[2], Triangle[0], BackBuffer);
 
 			if (degree >= 360.0f) degree = 0;
 			frameTime = 0;
