@@ -93,6 +93,10 @@ void PS_White(Pixel &makeWhite) {
 	makeWhite = 0xFFFFFFFF;
 }
 
+void PS_Green(Pixel &makeWhite) {
+	makeWhite = 0xFF00FF00;
+}
+
 
 void ClearBuffer(unsigned int* _srcBuffer) {
 	for ( int i = 0; i < NUM_PIXELS; i++ ) {
@@ -312,14 +316,34 @@ void MultiplyVertexByMatrix(Vertex4 &_v4, Matrix4x4 _m4) {
 	_v4.w = w;
 }
 
+Matrix4x4 MatrixRotation_X(float _degree) {
+	float rad = DegreesToradians(_degree);
+	Matrix4x4 m = { 1, 0,			0,			0,
+					0, cosf(rad),	-sinf(rad),	0,
+					0, sinf(rad),	cosf(rad),	0,
+					0, 0,			0,			1 };
+	return m;
+}
+
+Matrix4x4 MatrixRotation_Y(float _degree) {
+	float rad = DegreesToradians(_degree);
+	Matrix4x4 m = { cosf(rad),	0,	sinf(rad),	0,
+					0,			1,	0,			0,
+					-sinf(rad),	0,	cosf(rad),	0,
+					0,			0,	0,			1 };
+	return m;
+}
+
 Matrix4x4 MatrixRotation_Z(float _degree) {
 	float rad = DegreesToradians(_degree);
 	Matrix4x4 m = { cosf(rad),	-sinf(rad),	0,	0,
-		sinf(rad),	cosf(rad),	0,	0,
-		0,			0,			1,	0,
-		0,			0,			0,	1 };
+					sinf(rad),	cosf(rad),	0,	0,
+					0,			0,			1,	0,
+					0,			0,			0,	1 };
 	return m;
 }
+
+
 
 void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer) {
 	// Copy input data and send through shaders
