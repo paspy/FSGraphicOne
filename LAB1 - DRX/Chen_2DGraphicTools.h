@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ctime>
 #include <cstdio>
+#include "Celestial.h"
 
 // marcos
 #define RASTER_WIDTH 500
@@ -45,7 +46,8 @@ typedef struct Tri {
 }*Triangle_ptr;
 
 typedef struct Pixel2D {
-	int x, y, depth;
+	int x, y;
+	float depth;
 }*Pixel2D_ptr;
 
 typedef unsigned int Pixel;
@@ -91,14 +93,15 @@ Matrix4x4 SV_ProjMatrix;
 
 // function prototype
 void ClearBuffer(unsigned int* _srcBuffer);
+void ClearZBuffer(float* _zBuffer);
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width);
 int RandInRange(int _min, int _max);
 unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio);
-void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color);
-void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
-void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
-void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int *_ZBuffer, unsigned int _StartColor, unsigned int _EndColor);
-void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer, unsigned int *_ZBuffer);
+void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color, float *_zBuffer, float _depth);
+//void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
+//void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
+void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor, float *_zBuffer, float zValue);
+void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer, float *_zBuffer);
 void MultiplyVertexByMatrix(Vertex4 &_vertex4, Matrix4x4 _worldMatrix);
 Matrix4x4 MultiplyMatrixByMatrix(Matrix4x4 m, Matrix4x4 n);
 unsigned int LerpTri(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
@@ -127,6 +130,13 @@ void PS_Green(Pixel &makeWhite) {
 	makeWhite = 0xFF00FF00;
 }
 
+void PS_UVShader(Pixel &_inColor, float _u, float _v) {
+	int idx = std::floor(_v*celestial_height) * celestial_width + std::floor(_u*celestial_width);
+	if ( idx >= celestial_numpixels ) return;
+	_inColor = celestial_pixels[idx];
+
+}
+
 
 void ClearBuffer(unsigned int* _srcBuffer) {
 	for ( int i = 0; i < NUM_PIXELS; i++ ) {
@@ -134,9 +144,18 @@ void ClearBuffer(unsigned int* _srcBuffer) {
 	}
 }
 
-void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color) {
+void ClearZBuffer(float* _zBuffer) {
+	for ( int i = 0; i < NUM_PIXELS; i++ ) {
+		_zBuffer[i] = 1.0f;
+	}
+}
+
+void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color, float *_zBuffer, float _depth) {
+
 	int index = Convert2Dto1D(_x, _y, RASTER_WIDTH);
-	if ( index < 0 ) return;
+	if ( index < 0 || _depth > _zBuffer[index]) return;
+
+	_zBuffer[index] = _depth;
 	_buffer[index] = _color;
 }
 
@@ -203,118 +222,118 @@ unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio) {
 	return newA | newR | newG | newB;
 }
 
-void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
-	if ( abs(_y1 - _y0) > abs(_x1 - _x0) ) {
-		std::swap(_x0, _y0);
-		std::swap(_x1, _y1);
-	}
-	if ( _x0 > _x1 ) {
-		std::swap(_x0, _x1);
-		std::swap(_y0, _y1);
-	}
-	int deltaX = _x1 - _x0, deltaY = abs(_y1 - _y0);
-	int error = deltaX / 2;
-	int yStep;
-	int y = _y0;
-	if ( _y0 < _y1 ) yStep = 1;
-	else  yStep = -1;
-	for ( int x = _x0; x < _x1; x++ ) {
-		if ( abs(_y1 - _y0) > abs(_x1 - _x0) ) {
-			if ( x == _x0 || x == _x1 - 1 ) DrawPoint(y, x, _buffer, 0xFFFF00);
-			else DrawPoint(y, x, _buffer, _color);
-		} else {
-			if ( x == _x0 || x == _x1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
-			else DrawPoint(x, y, _buffer, _color);
-		}
-		error -= deltaY;
-		if ( error < 0 ) {
-			y += yStep;
-			error += deltaX;
-		}
-	}
+//void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
+//	if ( abs(_y1 - _y0) > abs(_x1 - _x0) ) {
+//		std::swap(_x0, _y0);
+//		std::swap(_x1, _y1);
+//	}
+//	if ( _x0 > _x1 ) {
+//		std::swap(_x0, _x1);
+//		std::swap(_y0, _y1);
+//	}
+//	int deltaX = _x1 - _x0, deltaY = abs(_y1 - _y0);
+//	int error = deltaX / 2;
+//	int yStep;
+//	int y = _y0;
+//	if ( _y0 < _y1 ) yStep = 1;
+//	else  yStep = -1;
+//	for ( int x = _x0; x < _x1; x++ ) {
+//		if ( abs(_y1 - _y0) > abs(_x1 - _x0) ) {
+//			if ( x == _x0 || x == _x1 - 1 ) DrawPoint(y, x, _buffer, 0xFFFF00);
+//			else DrawPoint(y, x, _buffer, _color);
+//		} else {
+//			if ( x == _x0 || x == _x1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
+//			else DrawPoint(x, y, _buffer, _color);
+//		}
+//		error -= deltaY;
+//		if ( error < 0 ) {
+//			y += yStep;
+//			error += deltaX;
+//		}
+//	}
+//
+//}
+//
+//void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
+//	if ( _x1 < _x0 ) {
+//		std::swap(_x0, _x1);
+//		std::swap(_y0, _y1);
+//	}
+//	int a = _y0 - _y1, b = _x1 - _x0;
+//	float m;
+//	if ( b == 0 ) m = (float)a * -100.0f;
+//	else m = (float)a / (_x0 - _x1);
+//	int x = _x0, y = _y0;
+//	DrawPoint(x, y, _buffer, 0xFFFF00);
+//
+//	if ( m >= 0 && m <= 1 ) {
+//		int d = 2 * a + b;
+//		int d1 = 2 * a;
+//		int d2 = 2 * (a + b);
+//		while ( x < _x1 ) {
+//			if ( d <= 0 ) {
+//				x++;
+//				y++;
+//				d += d2;
+//			} else {
+//				x++;
+//				d += d1;
+//			}
+//			if ( x == _x1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
+//			else DrawPoint(x, y, _buffer, _color);
+//		}
+//	} else if ( m <= 0 && m >= -1 ) {
+//		int d = 2 * a - b;
+//		int d1 = 2 * a - 2 * b;
+//		int d2 = 2 * a;
+//		while ( x < _x1 ) {
+//			if ( d > 0 ) {
+//				x++;
+//				y--;
+//				d += d1;
+//			} else {
+//				x++;
+//				d += d2;
+//			}
+//			if ( x == _x1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
+//			else DrawPoint(x, y, _buffer, _color);
+//		}
+//	} else if ( m > 1 ) {
+//		int d = a + 2 * b;
+//		int d1 = 2 * (a + b);
+//		int d2 = 2 * b;
+//		while ( y < _y1 ) {
+//			if ( d > 0 ) {
+//				x++;
+//				y++;
+//				d += d1;
+//			} else {
+//				y++;
+//				d += d2;
+//			}
+//			if ( y == _y1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
+//			else DrawPoint(x, y, _buffer, _color);
+//		}
+//	} else {
+//		int d = a - 2 * b;
+//		int d1 = -2 * b;
+//		int d2 = 2 * (a - b);
+//		while ( y > _y1 ) {
+//			if ( d <= 0 ) {
+//				x++;
+//				y--;
+//				d += d2;
+//			} else {
+//				y--;
+//				d += d1;
+//			}
+//			if ( y == 0 ) DrawPoint(x, y, _buffer, 0xFFFF00);
+//			else DrawPoint(x, y, _buffer, _color);
+//		}
+//	}
+//}
 
-}
-
-void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color) {
-	if ( _x1 < _x0 ) {
-		std::swap(_x0, _x1);
-		std::swap(_y0, _y1);
-	}
-	int a = _y0 - _y1, b = _x1 - _x0;
-	float m;
-	if ( b == 0 ) m = (float)a * -100.0f;
-	else m = (float)a / (_x0 - _x1);
-	int x = _x0, y = _y0;
-	DrawPoint(x, y, _buffer, 0xFFFF00);
-
-	if ( m >= 0 && m <= 1 ) {
-		int d = 2 * a + b;
-		int d1 = 2 * a;
-		int d2 = 2 * (a + b);
-		while ( x < _x1 ) {
-			if ( d <= 0 ) {
-				x++;
-				y++;
-				d += d2;
-			} else {
-				x++;
-				d += d1;
-			}
-			if ( x == _x1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
-			else DrawPoint(x, y, _buffer, _color);
-		}
-	} else if ( m <= 0 && m >= -1 ) {
-		int d = 2 * a - b;
-		int d1 = 2 * a - 2 * b;
-		int d2 = 2 * a;
-		while ( x < _x1 ) {
-			if ( d > 0 ) {
-				x++;
-				y--;
-				d += d1;
-			} else {
-				x++;
-				d += d2;
-			}
-			if ( x == _x1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
-			else DrawPoint(x, y, _buffer, _color);
-		}
-	} else if ( m > 1 ) {
-		int d = a + 2 * b;
-		int d1 = 2 * (a + b);
-		int d2 = 2 * b;
-		while ( y < _y1 ) {
-			if ( d > 0 ) {
-				x++;
-				y++;
-				d += d1;
-			} else {
-				y++;
-				d += d2;
-			}
-			if ( y == _y1 - 1 ) DrawPoint(x, y, _buffer, 0xFFFF00);
-			else DrawPoint(x, y, _buffer, _color);
-		}
-	} else {
-		int d = a - 2 * b;
-		int d1 = -2 * b;
-		int d2 = 2 * (a - b);
-		while ( y > _y1 ) {
-			if ( d <= 0 ) {
-				x++;
-				y--;
-				d += d2;
-			} else {
-				y--;
-				d += d1;
-			}
-			if ( y == 0 ) DrawPoint(x, y, _buffer, 0xFFFF00);
-			else DrawPoint(x, y, _buffer, _color);
-		}
-	}
-}
-
-void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int *_ZBuffer, unsigned int _StartColor, unsigned int _EndColor) {
+void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer,  unsigned int _StartColor, unsigned int _EndColor, float *_zBuffer, float zValue) {
 	int deltaX = abs(_x1 - _x0);
 	int deltaY = abs(_y1 - _y0);
 	int m = max(deltaX, deltaY);
@@ -327,7 +346,7 @@ void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffe
 		Pixel copyColor = (unsigned int)ColorLerp(_StartColor, _EndColor, ratio); // Just like a Vertex, copy original. 
 		if ( PixelShader ) PixelShader(copyColor); // Modify copy. 
 
-		DrawPoint(x, y, _buffer, copyColor);
+		DrawPoint(x, y, _buffer, copyColor, _zBuffer, zValue);
 		//if (i == 0 || i == m - 1) {
 		//	DrawPoint(x, y, _buffer, 0xFFFF00);
 		//} else {
@@ -465,7 +484,7 @@ Matrix4x4 CreateProjectMatrix(float _nearPlane, float _farPlane, float _fovDegre
 	return m;
 }
 
-void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer, unsigned int *_ZBuffer = nullptr) {
+void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer, float *_zBuffer = nullptr) {
 	// Copy input data and send through shaders
 	Vertex4 copy_start = _start;
 	Vertex4 copy_end = _end;
@@ -478,7 +497,7 @@ void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned in
 	Pixel2D screen_start = CartesianToScreen(copy_start);
 	Pixel2D screen_end = CartesianToScreen(copy_end);
 	// Standard line drawing code follows using integer coordinates...
-	DrawParametricLine(screen_start.x, screen_start.y, screen_end.x, screen_end.y, _buffer, _ZBuffer, _start.color, _end.color);
+	DrawParametricLine(screen_start.x, screen_start.y, screen_end.x, screen_end.y, _buffer,  _start.color, _end.color, _zBuffer, 0.0f);
 
 }
 
@@ -487,7 +506,7 @@ Pixel2D CartesianToScreen(Vertex4 _v4) {
 
 	screenPos.x = (int)((_v4.x + 1.0f) *0.5f * RASTER_WIDTH);
 	screenPos.y = (int)((1.0f - _v4.y) *0.5f * RASTER_HEIGHT);
-
+	screenPos.depth = _v4.z;
 	return screenPos;
 }
 
@@ -495,7 +514,7 @@ Vertex4 ScreenToCartesian(Pixel2D _p2) {
 	Vertex4 realPos;
 	realPos.x = ((float)_p2.x / RASTER_WIDTH *2.0f - 1.0f);
 	realPos.y = -((float)_p2.y / RASTER_HEIGHT *2.0f - 1.0f);
-
+	realPos.z = _p2.depth;
 	return realPos;
 }
 
@@ -525,7 +544,7 @@ Vertex4 FindBarycentricPoint(Vertex4 _P, const Vertex4 _triangle[3]) {
 	return P;
 }
 
-void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned int _color) {
+void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned int _color, float* _zBuffer) {
 
 	Vertex4 copy_vert[3] = { _triangle.a, _triangle.b, _triangle.c };
 
@@ -552,15 +571,19 @@ void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned in
 
 			Vertex4 curPoint = ScreenToCartesian(curScreenPos);
 			Vertex4 bya = FindBarycentricPoint(curPoint, copy_vert);
+			float Z = bya.z*a.depth + bya.x*b.depth + bya.y*c.depth;
+			float U = bya.z*copy_vert[0].u + bya.x*copy_vert[1].u + bya.y*copy_vert[2].u;
+			float V = bya.z*copy_vert[0].v + bya.x*copy_vert[1].v + bya.y*copy_vert[2].v;
+
 			if ((bya.x >= 0 && bya.x <= 1) &&
 				(bya.y >= 0 && bya.y <= 1) &&
 				(bya.z >= 0 && bya.z <= 1)) {
-				//if (bya.x >= 0.99f)	{
-				//	int b = 0; b++;
-				//}
 
 				unsigned int blendColor = ColorLerpTriangle(_triangle.a.color, _triangle.b.color, _triangle.c.color, bya.x, bya.y, bya.z);
-				DrawPoint(curX, curY, _buffer, blendColor);
+				if ( PixelShader ) {
+					PS_UVShader(blendColor, U, V);
+				}
+				DrawPoint(curX, curY, _buffer, blendColor, _zBuffer, Z);
 			}
 		}
 	}
