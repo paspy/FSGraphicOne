@@ -35,5 +35,11 @@
     <ClInclude Include="Chen_2DGraphicTools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="3DModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Celestial.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

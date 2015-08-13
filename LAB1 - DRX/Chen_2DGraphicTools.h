@@ -2,8 +2,6 @@
 #include <cmath>
 #include <Windows.h>
 #include <iostream>
-#include <utility>
-#include <cassert>
 #include <ctime>
 #include <cstdio>
 
@@ -33,11 +31,17 @@ typedef struct Vertex4 {
 			float x, y, z, w;
 		};
 	};
+	union {
+		float uv[2];
+		struct {
+			float u, v;
+		};
+	};
 	unsigned int color;
 }*Vertex4_ptr;
 
 typedef struct Pixel2D {
-	int x, y;
+	int x, y, depth;
 }*Pixel2D_ptr;
 
 typedef unsigned int Pixel;
@@ -89,8 +93,8 @@ unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio);
 void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color);
 void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
 void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
-void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor);
-void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer);
+void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int *_ZBuffer, unsigned int _StartColor, unsigned int _EndColor);
+void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer, unsigned int *_ZBuffer);
 void MultiplyVertexByMatrix(Vertex4 &_vertex4, Matrix4x4 _worldMatrix);
 Matrix4x4 MultiplyMatrixByMatrix(Matrix4x4 m, Matrix4x4 n);
 unsigned int LerpTri(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
@@ -127,12 +131,14 @@ void ClearBuffer(unsigned int* _srcBuffer) {
 }
 
 void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color) {
-	_buffer[Convert2Dto1D(_x, _y, RASTER_WIDTH)] = _color;
+	int index = Convert2Dto1D(_x, _y, RASTER_WIDTH);
+	if ( index < 0 ) return;
+	_buffer[index] = _color;
 }
 
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width) {
-	assert(_x <= RASTER_HEIGHT&&_y <= RASTER_HEIGHT);
-	return _y*_width + _x;
+	if ( _x <= RASTER_HEIGHT&&_y <= RASTER_HEIGHT )	return _y*_width + _x;
+	return -1;
 }
 
 int RandInRange(int _min, int _max) {
@@ -304,7 +310,7 @@ void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer,
 	}
 }
 
-void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _StartColor, unsigned int _EndColor) {
+void DrawParametricLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int *_ZBuffer, unsigned int _StartColor, unsigned int _EndColor) {
 	int deltaX = abs(_x1 - _x0);
 	int deltaY = abs(_y1 - _y0);
 	int m = max(deltaX, deltaY);
@@ -455,7 +461,7 @@ Matrix4x4 CreateProjectMatrix(float _nearPlane, float _farPlane, float _fovDegre
 	return m;
 }
 
-void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer) {
+void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned int *_buffer, unsigned int *_ZBuffer = nullptr) {
 	// Copy input data and send through shaders
 	Vertex4 copy_start = _start;
 	Vertex4 copy_end = _end;
@@ -468,9 +474,7 @@ void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned in
 	Pixel2D screen_start = CartesianToScreen(copy_start);
 	Pixel2D screen_end = CartesianToScreen(copy_end);
 	// Standard line drawing code follows using integer coordinates...
-
-	DrawParametricLine(screen_start.x, screen_start.y, screen_end.x, screen_end.y, _buffer, _start.color, _end.color);
-
+	DrawParametricLine(screen_start.x, screen_start.y, screen_end.x, screen_end.y, _buffer, _ZBuffer, _start.color, _end.color);
 
 }
 
@@ -546,11 +550,11 @@ void BetterBruteTriangle(const Vertex4 _triangle[3], unsigned int *_buffer, unsi
 			Vertex4 bya = FindBarycentricPoint(curPoint, copy_vert);
 			if ((bya.x >= 0 && bya.x <= 1) &&
 				(bya.y >= 0 && bya.y <= 1) &&
-				(bya.z >= 0 && bya.z <= 1))
-			{
-				if (bya.x >= 0.99f) 					{
-					int b = 0; b++;
-				}
+				(bya.z >= 0 && bya.z <= 1)) {
+				//if (bya.x >= 0.99f)	{
+				//	int b = 0; b++;
+				//}
+
 				unsigned int blendColor = ColorLerpTriangle(_triangle[0].color, _triangle[1].color, _triangle[2].color, bya.x, bya.y, bya.z);
 				DrawPoint(curX, curY, _buffer, blendColor);
 			}
