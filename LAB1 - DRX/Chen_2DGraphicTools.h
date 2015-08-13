@@ -40,6 +40,10 @@ typedef struct Vertex4 {
 	unsigned int color;
 }*Vertex4_ptr;
 
+typedef struct Tri {
+	Vertex4 a, b, c;
+}*Triangle_ptr;
+
 typedef struct Pixel2D {
 	int x, y, depth;
 }*Pixel2D_ptr;
@@ -521,9 +525,9 @@ Vertex4 FindBarycentricPoint(Vertex4 _P, const Vertex4 _triangle[3]) {
 	return P;
 }
 
-void BetterBruteTriangle(const Vertex4 _triangle[3], unsigned int *_buffer, unsigned int _color) {
+void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned int _color) {
 
-	Vertex4 copy_vert[3] = { _triangle[0], _triangle[1], _triangle[2] };
+	Vertex4 copy_vert[3] = { _triangle.a, _triangle.b, _triangle.c };
 
 	if (VertexShader) {
 		VertexShader(copy_vert[0]);
@@ -555,7 +559,7 @@ void BetterBruteTriangle(const Vertex4 _triangle[3], unsigned int *_buffer, unsi
 				//	int b = 0; b++;
 				//}
 
-				unsigned int blendColor = ColorLerpTriangle(_triangle[0].color, _triangle[1].color, _triangle[2].color, bya.x, bya.y, bya.z);
+				unsigned int blendColor = ColorLerpTriangle(_triangle.a.color, _triangle.b.color, _triangle.c.color, bya.x, bya.y, bya.z);
 				DrawPoint(curX, curY, _buffer, blendColor);
 			}
 		}

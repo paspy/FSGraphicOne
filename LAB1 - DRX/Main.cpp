@@ -47,9 +47,8 @@ int main() {
 			// rotation here
 			degree += 1.0f;
 
-			SV_WorldMatrix = MatrixRotation_Z(degree);
+			SV_WorldMatrix = MatrixRotation_Y(degree);
 			PixelShader = PS_White;
-			BetterBruteTriangle(Triangle, BackBuffer, 0xFFFF0000);
 
 			// draw grid
 			SV_WorldMatrix = MatrixRotation_X(0.0f);
@@ -60,33 +59,18 @@ int main() {
 				DrawLineUsingShader(Grid[22 + i], Grid[33 + i], BackBuffer);
 			}
 
-			//// draw cube
-			//SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixTranslation(0, 0.25f, 0), MatrixRotation_Y(degree));
 
-			//PixelShader = PS_Green;
+			
+			// draw cube
+			SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixTranslation(0, 0.25f, 0), MatrixRotation_Y(degree));
+			PixelShader = PS_Green;
 
-			//DrawLineUsingShader(Cube[0], Cube[1], BackBuffer);
-			//DrawLineUsingShader(Cube[1], Cube[2], BackBuffer);
-			//DrawLineUsingShader(Cube[2], Cube[3], BackBuffer);
-			//DrawLineUsingShader(Cube[3], Cube[0], BackBuffer);
-
-			//DrawLineUsingShader(Cube[4], Cube[5], BackBuffer);
-			//DrawLineUsingShader(Cube[5], Cube[6], BackBuffer);
-			//DrawLineUsingShader(Cube[6], Cube[7], BackBuffer);
-			//DrawLineUsingShader(Cube[7], Cube[4], BackBuffer);
-			//DrawLineUsingShader(Cube[7], Cube[4], BackBuffer);
-
-			//DrawLineUsingShader(Cube[0], Cube[4], BackBuffer);
-			//DrawLineUsingShader(Cube[1], Cube[5], BackBuffer);
-			//DrawLineUsingShader(Cube[2], Cube[6], BackBuffer);
-			//DrawLineUsingShader(Cube[3], Cube[7], BackBuffer);
-
-			//DrawLineUsingShader(Cube[0], Cube[2], BackBuffer);
-			//DrawLineUsingShader(Cube[0], Cube[5], BackBuffer);
-			//DrawLineUsingShader(Cube[0], Cube[7], BackBuffer);
-			//DrawLineUsingShader(Cube[1], Cube[6], BackBuffer);
-			//DrawLineUsingShader(Cube[3], Cube[6], BackBuffer);
-			//DrawLineUsingShader(Cube[4], Cube[6], BackBuffer);
+			for ( int i = 0; i < 12; i++ ) {
+				//DrawLineUsingShader(Cube2[i].a, Cube2[i].b, BackBuffer);
+				//DrawLineUsingShader(Cube2[i].b, Cube2[i].c, BackBuffer);
+				//DrawLineUsingShader(Cube2[i].c, Cube2[i].a, BackBuffer);
+				BetterBruteTriangle(Cube2[i], BackBuffer, 0xFFFF0000);
+			}
 
 			if (degree >= 360.0f) degree = 0;
 			frameTime = 0;
