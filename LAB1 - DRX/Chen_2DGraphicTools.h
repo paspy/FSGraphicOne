@@ -105,6 +105,7 @@ void DrawLineUsingShader(const Vertex4 &_start, const Vertex4 &_end, unsigned in
 void MultiplyVertexByMatrix(Vertex4 &_vertex4, Matrix4x4 _worldMatrix);
 Matrix4x4 MultiplyMatrixByMatrix(Matrix4x4 m, Matrix4x4 n);
 unsigned int LerpTri(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
+unsigned int BGRA_To_ARGB(const unsigned int _inColor);
 unsigned int ColorLerpTriangle(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC);
 Matrix4x4 MatrixRotation_X(float _degree);
 Matrix4x4 MatrixRotation_Y(float _degree);
@@ -131,9 +132,9 @@ void PS_Green(Pixel &makeWhite) {
 }
 
 void PS_UVShader(Pixel &_inColor, float _u, float _v) {
-	int idx = std::floor(_v*celestial_height) * celestial_width + std::floor(_u*celestial_width);
+	int idx = int( std::floorf(_v*celestial_height) * celestial_width + std::floorf(_u*celestial_width));
 	if ( idx >= celestial_numpixels ) return;
-	_inColor = celestial_pixels[idx];
+	_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
 
 }
 
@@ -172,6 +173,15 @@ unsigned int Lerp_(unsigned int _A, unsigned int _B, float _ratio) {
 	return (unsigned int)((((float)_B - (float)_A) * _ratio) + (float)_A);
 }
 
+unsigned int BGRA_To_ARGB(const unsigned int _inColor) {
+	// BGRA to ARGB
+	unsigned int ia = _inColor & 0x000000FF; ia <<= 24;
+	unsigned int ir = _inColor & 0x0000FF00; ir <<= 8;
+	unsigned int ig = _inColor & 0x00FF0000; ig >>= 8;
+	unsigned int ib = _inColor & 0xFF000000; ib >>= 24;
+
+	return (ia | ir | ig | ib);
+}
 
 unsigned int ColorLerpTriangle(unsigned int _A, unsigned int _B, unsigned int _C, float _ratioA, float _ratioB, float _ratioC) {
 	unsigned int A1 = (_A & 0xFF000000) >> 24;
