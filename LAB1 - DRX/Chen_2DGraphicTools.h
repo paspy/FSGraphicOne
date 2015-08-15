@@ -12,8 +12,10 @@
 #define NUM_PIXELS (RASTER_WIDTH*RASTER_HEIGHT)
 #define SCREEN_RATIO (RASTER_WIDTH/RASTER_HEIGHT)
 
-#define EPSILON 0.0001
-#define PI 3.1415926
+#define EPSILON 0.0001f
+#define PI 3.1415926f
+#define FAR_PLANE 10.0f
+#define NEAR_PLANE 0.1f
 
 #define VKNUM_1 0x31
 #define VKNUM_2 0x32
@@ -97,6 +99,7 @@ void ClearZBuffer(float* _zBuffer);
 int Convert2Dto1D(const unsigned int _x, const unsigned int _y, const unsigned int _width);
 int RandInRange(int _min, int _max);
 unsigned int ColorLerp(unsigned int _A, unsigned int _B, float _ratio);
+unsigned int Lerp_(unsigned int _A, unsigned int _B, float _ratio);
 void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color, float *_zBuffer, float _depth);
 //void DrawBresehamLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
 //void DrawMidpointLine(int _x0, int _y0, int _x1, int _y1, unsigned int *_buffer, unsigned int _color);
@@ -131,11 +134,39 @@ void PS_Green(Pixel &makeWhite) {
 	makeWhite = 0xFF00FF00;
 }
 
-void PS_UVShader(Pixel &_inColor, float _u, float _v) {
-	int idx = int( std::floorf(_v*celestial_height) * celestial_width + std::floorf(_u*celestial_width));
-	if ( idx >= celestial_numpixels ) return;
-	_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
+//void PS_UVShader(Pixel &_inColor, float _u, float _v) {
+//	int idx = int( std::floorf(_v*celestial_height) * celestial_width + std::floorf(_u*celestial_width));
+//	if ( idx >= celestial_numpixels ) return;
+//	_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
+//
+//}
 
+void PS_UVShader(Pixel &_inColor, float _u, float _v, float _w) {
+	unsigned int miplevel = (unsigned int)std::floorf(1.0f / _w / (FAR_PLANE - NEAR_PLANE)*celestial_numlevels);
+	//unsigned int miplevel = 3;
+	unsigned int width = (celestial_width >> miplevel);
+	unsigned int height = (celestial_height >> miplevel);
+
+	float biX = _u * width - std::floorf(_u * width);
+	float biY = _v * height - std::floorf(_v * height);
+
+	//int idx0 = std::floorf(_v * height) * width + std::floorf(_u * width) * height + celestial_leveloffsets[miplevel];
+	int idx0 = int(std::floorf(_v*height) * width + std::floorf(_u*width)) + celestial_leveloffsets[miplevel];
+	int idx1 = idx0 + 1;
+	int idx2 = idx0 + width;
+	int idx3 = idx0 + width + 1;
+
+	if ( idx0 >= celestial_numpixels ) return;
+	unsigned int color0 = ColorLerp(BGRA_To_ARGB(celestial_pixels[idx0]), BGRA_To_ARGB(celestial_pixels[idx1]), biX);
+	unsigned int color1 = ColorLerp(BGRA_To_ARGB(celestial_pixels[idx2]), BGRA_To_ARGB(celestial_pixels[idx3]), biX);
+
+	unsigned int resultColor = ColorLerp(color0, color1, biY);
+
+	_inColor = resultColor;
+
+	//int idx = int(std::floorf(_v*height) * width + std::floorf(_u*width)) + celestial_leveloffsets[miplevel];
+	//if ( idx >= celestial_numpixels ) return;
+	//_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
 }
 
 
@@ -588,9 +619,9 @@ void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned in
 			Vertex4 curPoint = ScreenToCartesian(curScreenPos);
 			Vertex4 bya = FindBarycentricPoint(curPoint, copy_vert);
 
+			float X = bya.z*copy_vert[0].x + bya.x*copy_vert[1].x + bya.y*copy_vert[2].x;
+			float Y = bya.z*copy_vert[0].y + bya.x*copy_vert[1].y + bya.y*copy_vert[2].y;
 			float Z = bya.z*copy_vert[0].z + bya.x*copy_vert[1].z + bya.y*copy_vert[2].z;
-
-
 			float U = bya.z*copy_vert[0].u + bya.x*copy_vert[1].u + bya.y*copy_vert[2].u;
 			float V = bya.z*copy_vert[0].v + bya.x*copy_vert[1].v + bya.y*copy_vert[2].v;
 			float W = 1.0f / copy_vert[0].w * bya.z + 1.0f / copy_vert[1].w * bya.x + 1.0f / copy_vert[2].w * bya.y;
@@ -602,7 +633,7 @@ void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned in
 
 				unsigned int blendColor = ColorLerpTriangle(_triangle.a.color, _triangle.b.color, _triangle.c.color, bya.x, bya.y, bya.z);
 				if ( PixelShader ) {
-					PS_UVShader(blendColor, U, V);
+					PS_UVShader(blendColor, U, V, W);
 				}
 				DrawPoint(curX, curY, _buffer, blendColor, _zBuffer, Z);
 			}
