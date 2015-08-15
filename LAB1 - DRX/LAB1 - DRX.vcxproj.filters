@@ -41,5 +41,8 @@
     <ClInclude Include="Celestial.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MipTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

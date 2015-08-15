@@ -154,6 +154,7 @@
     <ClInclude Include="3DModel.h" />
     <ClInclude Include="Celestial.h" />
     <ClInclude Include="Chen_2DGraphicTools.h" />
+    <ClInclude Include="MipTest.h" />
     <ClInclude Include="RasterSurface.h" />
     <ClInclude Include="XTime.h" />
   </ItemGroup>

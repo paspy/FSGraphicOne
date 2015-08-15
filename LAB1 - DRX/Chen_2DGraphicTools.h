@@ -154,6 +154,7 @@ void ClearZBuffer(float* _zBuffer) {
 void DrawPoint(const unsigned int _x, const unsigned int _y, unsigned int *_buffer, unsigned int _color, float *_zBuffer, float _depth) {
 
 	int index = Convert2Dto1D(_x, _y, RASTER_WIDTH);
+
 	if ( index < 0 || _depth > _zBuffer[index]) return;
 
 	_zBuffer[index] = _depth;
@@ -572,7 +573,12 @@ void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned in
 	int startY = min(a.y, min(b.y, c.y));
 	int endX   = max(a.x, max(b.x, c.x));
 	int endY   = max(a.y, max(b.y, c.y));
-
+	copy_vert[0].u /= copy_vert[0].w;
+	copy_vert[1].u /= copy_vert[1].w;
+	copy_vert[2].u /= copy_vert[2].w;
+	copy_vert[0].v /= copy_vert[0].w;
+	copy_vert[1].v /= copy_vert[1].w;
+	copy_vert[2].v /= copy_vert[2].w;
 	for (int curY = startY; curY < endY; curY++) {
 		for (int curX = startX; curX < endX; curX++) {
 			Pixel2D curScreenPos;
@@ -581,10 +587,15 @@ void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned in
 
 			Vertex4 curPoint = ScreenToCartesian(curScreenPos);
 			Vertex4 bya = FindBarycentricPoint(curPoint, copy_vert);
-			float Z = bya.z*a.depth + bya.x*b.depth + bya.y*c.depth;
+
+			float Z = bya.z*copy_vert[0].z + bya.x*copy_vert[1].z + bya.y*copy_vert[2].z;
+
+
 			float U = bya.z*copy_vert[0].u + bya.x*copy_vert[1].u + bya.y*copy_vert[2].u;
 			float V = bya.z*copy_vert[0].v + bya.x*copy_vert[1].v + bya.y*copy_vert[2].v;
-
+			float W = 1.0f / copy_vert[0].w * bya.z + 1.0f / copy_vert[1].w * bya.x + 1.0f / copy_vert[2].w * bya.y;
+			U /= W;
+			V /= W;
 			if ((bya.x >= 0 && bya.x <= 1) &&
 				(bya.y >= 0 && bya.y <= 1) &&
 				(bya.z >= 0 && bya.z <= 1)) {

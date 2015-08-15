@@ -80,7 +80,7 @@ const Vertex4 Triangle[3] = {
 const Tri Cube2[12] = {
 	//	x		y		z		w		u		v	color		   x		y		z		w		u		v	color	  x		y		z		w		u		v	color
 	{ { -0.25f, -0.25f,  0.25f, 1.f,	0.0f, 1.0f, 0xFFFF00FF },{ 0.25f, -0.25f,  0.25f, 1.f,	1.0f, 1.0f, 0xFFFF00FF },{ 0.25f, -0.25f, -0.25f, 1.f,	1.0f, 0.0f, 0xFFFF00FF }, },	// ABC
-	{ { 0.25f, -0.25f, -0.25f, 1.f,		1.0f, 0.0f, 0xFFFF00FF },{ 0.25f, -0.25f,  0.25f, 1.f,	0.0f, 0.0f, 0xFFFF00FF },{ -0.25f, -0.25f,  0.25f, 1.f,	0.0f, 1.0f, 0xFFFF00FF }, },	// CDA
+	{ { 0.25f, -0.25f, -0.25f, 1.f,		1.0f, 0.0f, 0xFFFF00FF },{ -0.25f, -0.25f, -0.25f, 1.f,	0.0f, 0.0f, 0xFFFF00FF },{ -0.25f, -0.25f,  0.25f, 1.f,	0.0f, 1.0f, 0xFFFF00FF }, },	// CDA
 
 	{ { -0.25f, -0.25f,  0.25f, 1.f,	0.0f, 1.0f, 0xFFFF0000 },{ 0.25f, -0.25f,  0.25f, 1.f,	1.0f, 1.0f, 0xFFFF0000 },{ 0.25f,   0.25f,  0.25f, 1.f,	1.0f, 0.0f, 0xFFFF0000 }, },	// ABF
 	{ { 0.25f,   0.25f,  0.25f, 1.f,	1.0f, 0.0f, 0xFFFF0000 },{ -0.25f,  0.25f,  0.25f, 1.f,	0.0f, 0.0f, 0xFFFF0000 },{ -0.25f, -0.25f,  0.25f, 1.f,	0.0f, 1.0f, 0xFFFF0000 }, },	// FEA

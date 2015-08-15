@@ -6,8 +6,10 @@
 #include "XTime.h"
 #include "3DModel.h"
 
+
 unsigned int BackBuffer[NUM_PIXELS];
 float ZBuffer[NUM_PIXELS];
+float ZBuffer2[NUM_PIXELS];
 
 int main() {
 	srand(unsigned int(time(nullptr)));
@@ -36,6 +38,8 @@ int main() {
 
 	bool keyPressed = false;
 	int currentSelection = 0;
+	float currentDistance = -1.2f;
+	float currentDirection = 0.0f;
 
 	while (RS_Update(BackBuffer, NUM_PIXELS)) {
 
@@ -59,43 +63,51 @@ int main() {
 			PixelShader = PS_White;
 
 			for ( int i = 0; i < 11; i++ ) {
-				DrawLineUsingShader(Grid[0 + i], Grid[11 + i], BackBuffer);
-				DrawLineUsingShader(Grid[22 + i], Grid[33 + i], BackBuffer);
+				DrawLineUsingShader(Grid[0 + i], Grid[11 + i], BackBuffer, ZBuffer2);
+				DrawLineUsingShader(Grid[22 + i], Grid[33 + i], BackBuffer, ZBuffer2);
 			}
 
 			switch ( currentSelection ) {
-			case 0: {
-				// draw a tri
-				SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixTranslation(0, 0.25f, 0), MatrixRotation_Y(degree));
-				PixelShader = PS_Green;
-				BetterBruteTriangle(Cube2[4], BackBuffer, 0xFFFF0000, ZBuffer);
-				break;
-			}
-			case 1: {
-				// draw cube
-				SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixTranslation(0, 0.25f, 0), MatrixRotation_Y(degree));
-				PixelShader = PS_Green;
-
-				for ( int i = 0; i < 12; i++ ) {
-					//DrawLineUsingShader(Cube2[i].a, Cube2[i].b, BackBuffer);
-					//DrawLineUsingShader(Cube2[i].b, Cube2[i].c, BackBuffer);
-					//DrawLineUsingShader(Cube2[i].c, Cube2[i].a, BackBuffer);
-					BetterBruteTriangle(Cube2[i], BackBuffer, 0xFFFF0000, ZBuffer);
+				case 0: {
+					// draw cube
+					SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixRotation_Y(degree), MatrixTranslation(0, 0.25f, 0));
+					SV_WorldMatrix = MultiplyMatrixByMatrix(MatrixRotation_X(degree), SV_WorldMatrix);
+					viewMat = MultiplyMatrixByMatrix(MatrixTranslation(0, 0, currentDistance), MatrixRotation_X(-30.0f));
+					viewMat = Matrix_Inverse(viewMat);
+					for ( int i = 0; i < 12; i++ ) {
+						BetterBruteTriangle(Cube2[i], BackBuffer, 0xFFFF0000, ZBuffer);
+					}
+					break;
 				}
-				break;
+				case 1: {
+					break;
 
+				}
+				case 2: {
+					break;
+				}
+				default:
+					break;
 			}
-			case 2: {
-				break;
-			}
-			default:
-				break;
-			}
-
-
 
 			if (degree >= 360.0f) degree = 0;
 			frameTime = 0;
+		}
+
+		if ( GetAsyncKeyState(VK_UP) ) {
+			currentDistance += 0.005f;
+		}
+
+		if ( GetAsyncKeyState(VK_DOWN) ) {
+			currentDistance -= 0.005f;
+		}
+
+		if ( GetAsyncKeyState(VK_LEFT) ) {
+			currentDirection -= 1;
+		}
+
+		if ( GetAsyncKeyState(VK_RIGHT) ) {
+			currentDirection += 1;
 		}
 
 		if ( GetAsyncKeyState(VKNUM_1) && !keyPressed ) {
@@ -118,9 +130,14 @@ int main() {
 			keyPressed = true;
 		}
 
-		if ( !GetAsyncKeyState(VKNUM_1) && !GetAsyncKeyState(VKNUM_2) && !GetAsyncKeyState(VKNUM_3) && !GetAsyncKeyState(VKNUM_4) ) {
+		if ( !GetAsyncKeyState(VKNUM_1) &&
+			 !GetAsyncKeyState(VKNUM_2) &&
+			 !GetAsyncKeyState(VKNUM_3) && 
+			 !GetAsyncKeyState(VKNUM_4)  ) {
 			keyPressed = false;
 		}
+
+
 	}
 
 	RS_Shutdown();
