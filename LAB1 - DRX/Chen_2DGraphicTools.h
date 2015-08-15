@@ -87,6 +87,7 @@ bool IsZero(float a) {
 void(*VertexShader)(Vertex4&) = 0;
 // The active pixel shader. Modifies an outgoing pixel. Post-Rasterization.
 void(*PixelShader)(Pixel&) = 0;
+void(*PixelShaderX)(Pixel&, float, float, float) = 0;
 
 // All Shader Variables (Always Pre-fixed by ¡°SV_¡±)
 Matrix4x4 SV_WorldMatrix;
@@ -134,14 +135,14 @@ void PS_Green(Pixel &makeWhite) {
 	makeWhite = 0xFF00FF00;
 }
 
-//void PS_UVShader(Pixel &_inColor, float _u, float _v) {
-//	int idx = int( std::floorf(_v*celestial_height) * celestial_width + std::floorf(_u*celestial_width));
-//	if ( idx >= celestial_numpixels ) return;
-//	_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
-//
-//}
+void PS_UVShader(Pixel &_inColor, float _u, float _v) {
+	int idx = int( std::floorf(_v*celestial_height) * celestial_width + std::floorf(_u*celestial_width));
+	if ( idx >= celestial_numpixels ) return;
+	_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
 
-void PS_UVShader(Pixel &_inColor, float _u, float _v, float _w) {
+}
+
+void PS_UVShaderWith_MP_BIL(Pixel &_inColor, float _u, float _v, float _w) {
 	unsigned int miplevel = (unsigned int)std::floorf(1.0f / _w / (FAR_PLANE - NEAR_PLANE)*celestial_numlevels);
 	//unsigned int miplevel = 3;
 	unsigned int width = (celestial_width >> miplevel);
@@ -150,7 +151,6 @@ void PS_UVShader(Pixel &_inColor, float _u, float _v, float _w) {
 	float biX = _u * width - std::floorf(_u * width);
 	float biY = _v * height - std::floorf(_v * height);
 
-	//int idx0 = std::floorf(_v * height) * width + std::floorf(_u * width) * height + celestial_leveloffsets[miplevel];
 	int idx0 = int(std::floorf(_v*height) * width + std::floorf(_u*width)) + celestial_leveloffsets[miplevel];
 	int idx1 = idx0 + 1;
 	int idx2 = idx0 + width;
@@ -159,14 +159,9 @@ void PS_UVShader(Pixel &_inColor, float _u, float _v, float _w) {
 	if ( idx0 >= celestial_numpixels ) return;
 	unsigned int color0 = ColorLerp(BGRA_To_ARGB(celestial_pixels[idx0]), BGRA_To_ARGB(celestial_pixels[idx1]), biX);
 	unsigned int color1 = ColorLerp(BGRA_To_ARGB(celestial_pixels[idx2]), BGRA_To_ARGB(celestial_pixels[idx3]), biX);
-
 	unsigned int resultColor = ColorLerp(color0, color1, biY);
-
 	_inColor = resultColor;
 
-	//int idx = int(std::floorf(_v*height) * width + std::floorf(_u*width)) + celestial_leveloffsets[miplevel];
-	//if ( idx >= celestial_numpixels ) return;
-	//_inColor = BGRA_To_ARGB(celestial_pixels[idx]);
 }
 
 
@@ -633,7 +628,7 @@ void BetterBruteTriangle(const Tri _triangle, unsigned int *_buffer, unsigned in
 
 				unsigned int blendColor = ColorLerpTriangle(_triangle.a.color, _triangle.b.color, _triangle.c.color, bya.x, bya.y, bya.z);
 				if ( PixelShader ) {
-					PS_UVShader(blendColor, U, V, W);
+					PS_UVShaderWith_MP_BIL(blendColor, U, V, W);
 				}
 				DrawPoint(curX, curY, _buffer, blendColor, _zBuffer, Z);
 			}
